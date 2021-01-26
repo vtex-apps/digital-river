@@ -54,3 +54,5 @@ jsconfig.json
 .DS_Store
 
 **/yarn-error.log
+docs/*.json
+docs/*.js

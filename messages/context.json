@@ -1,0 +1,14 @@
+{
+  "admin/digital-river.title": "admin/digital-river.title",
+  "admin/digital-river.admin-menu-button": "admin/digital-river.admin-menu-button",
+  "admin/digital-river.settings.digitalRiverToken.label": "admin/digital-river.settings.digitalRiverToken.label",
+  "admin/digital-river.settings.digitalRiverToken.helpText": "admin/digital-river.settings.digitalRiverToken.helpText",
+  "admin/digital-river.settings.isLive.label": "admin/digital-river.settings.isLive.label",
+  "admin/digital-river.settings.isLive.helpText": "admin/digital-river.settings.isLive.helpText",
+  "admin/digital-river.settings.enableTaxCalculation.label": "admin/digital-river.settings.enableTaxCalculation.label",
+  "admin/digital-river.settings.enableTaxCalculation.helpText": "admin/digital-river.settings.enableTaxCalculation.helpText",
+  "admin/digital-river.taxStatus.otherTaxConfiguration": "admin/digital-river.taxStatus.otherTaxConfiguration",
+  "admin/digital-river.saveSettings.buttonText": "admin/digital-river.saveSettings.buttonText",
+  "admin/digital-river.saveSettings.success": "admin/digital-river.saveSettings.success",
+  "admin/digital-river.saveSettings.failure": "admin/digital-river.saveSettings.failure"
+}

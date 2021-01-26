@@ -1,0 +1,9 @@
+mutation SaveAppSettings($version: String, $settings: String) {
+  saveAppSettings(
+    app: "vtexus.connector-digital-river"
+    version: $version
+    settings: $settings
+  ) @context(provider: "vtex.apps-graphql") {
+    message
+  }
+}

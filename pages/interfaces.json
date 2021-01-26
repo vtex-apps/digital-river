@@ -1,0 +1,10 @@
+{
+  "admin.app.digital-river": {
+    "around": ["layout"],
+    "render": "client"
+  },
+  "layout": {
+    "component": "Admin",
+    "render": "client"
+  }
+}

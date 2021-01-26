@@ -1,0 +1,26 @@
+query OrderFormConfiguration {
+  orderFormConfiguration {
+    paymentConfiguration {
+      requiresAuthenticationForPreAuthorizedPaymentOption
+      allowInstallmentsMerge
+      blockPaymentSession
+    }
+    taxConfiguration {
+      url
+      authorizationHeader
+      allowExecutionAfterErrors
+      integratedAuthentication
+      appId
+    }
+    minimumQuantityAccumulatedForItems
+    decimalDigitsPrecision
+    minimumValueAccumulated
+    apps {
+      id
+      major
+      fields
+    }
+    allowMultipleDeliveries
+    allowManualPrice
+  }
+}

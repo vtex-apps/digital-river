@@ -1,0 +1,9 @@
+{
+  "admin.app.digital-river": {
+    "around": ["layout"],
+    "path": "/admin/app/digital-river/"
+  },
+  "layout": {
+    "component": "Admin"
+  }
+}

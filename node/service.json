@@ -1,13 +1,46 @@
 {
-  "memory": 256,
-  "ttl": 10,
-  "timeout": 2,
+  "stack": "nodejs",
+  "memory": 512,
+  "ttl": 43200,
+  "timeout": 40,
   "minReplicas": 2,
   "maxReplicas": 4,
   "workers": 1,
   "routes": {
-    "status": {
-      "path": "/_v/status/:code",
+    "paymentMethods": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payment-methods",
+      "public": true
+    },
+    "authorizations": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payments",
+      "public": true
+    },
+    "cancellations": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payments/:paymentId/cancellations",
+      "public": true
+    },
+    "settlements": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payments/:paymentId/settlements",
+      "public": true
+    },
+    "refunds": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payments/:paymentId/refunds",
+      "public": true
+    },
+    "inbound": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/payments/:paymentId/inbound-request/hooks",
+      "public": true
+    },
+    "hooks": {
+      "path": "/_v/api/connectors/vtex.digital-river/v0/hooks",
+      "public": true
+    },
+    "digitalRiverOrderTaxHandler": {
+      "path": "/_v/api/digital-river/checkout/order-tax",
+      "public": true
+    },
+    "updateCheckout": {
+      "path": "/_v/api/digital-river/checkout/update",
       "public": true
     }
   }

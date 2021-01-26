@@ -1,0 +1,61 @@
+type OrderFormConfiguration {
+  paymentConfiguration: PaymentConfiguration
+  taxConfiguration: TaxConfiguration
+  minimumQuantityAccumulatedForItems: Int
+  decimalDigitsPrecision: Int
+  minimumValueAccumulated: Int
+  apps: [OrderFormConfigurationApp]
+  allowMultipleDeliveries: Boolean
+  allowManualPrice: Boolean
+}
+
+type PaymentConfiguration {
+  requiresAuthenticationForPreAuthorizedPaymentOption: Boolean
+  allowInstallmentsMerge: Boolean
+  blockPaymentSession: Boolean
+}
+
+type TaxConfiguration {
+  url: String
+  authorizationHeader: String
+  allowExecutionAfterErrors: Boolean
+  integratedAuthentication: Boolean
+  appId: String
+}
+
+type OrderFormConfigurationApp {
+  id: ID
+  major: Int
+  fields: [String]
+}
+
+input OrderFormConfigurationInput {
+  paymentConfiguration: PaymentConfigurationInput
+  taxConfiguration: TaxConfigurationInput
+  minimumQuantityAccumulatedForItems: Int
+  decimalDigitsPrecision: Int
+  minimumValueAccumulated: Int
+  apps: [OrderFormConfigurationAppInput]
+  allowMultipleDeliveries: Boolean
+  allowManualPrice: Boolean
+}
+
+input PaymentConfigurationInput {
+  requiresAuthenticationForPreAuthorizedPaymentOption: Boolean
+  allowInstallmentsMerge: Boolean
+  blockPaymentSession: Boolean
+}
+
+input TaxConfigurationInput {
+  url: String
+  authorizationHeader: String
+  allowExecutionAfterErrors: Boolean
+  integratedAuthentication: Boolean
+  appId: String
+}
+
+input OrderFormConfigurationAppInput {
+  id: ID
+  major: Int
+  fields: [String]
+}

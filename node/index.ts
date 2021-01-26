@@ -1,15 +1,24 @@
-import {
+import type {
   ClientsConfig,
-  LRUCache,
-  method,
-  Service,
   ServiceContext,
+  ParamsContext,
   RecorderState,
 } from '@vtex/api'
+import { LRUCache, Service } from '@vtex/api'
+import type { PaymentProviderProtocol } from '@vtex/payment-provider-sdk'
+import { implementsAPI } from '@vtex/payment-provider-sdk'
 
 import { Clients } from './clients'
-import { status } from './middlewares/status'
-import { validate } from './middlewares/validate'
+import {
+  authorize,
+  availablePaymentMethods,
+  cancel,
+  inbound,
+  refund,
+  settle,
+} from './middlewares'
+import { digitalRiverOrderTaxHandler } from './middlewares/tax'
+import { digitalRiverUpdateCheckout } from './middlewares/checkout'
 
 const TIMEOUT_MS = 800
 
@@ -38,21 +47,70 @@ const clients: ClientsConfig<Clients> = {
 
 declare global {
   // We declare a global Context type just to avoid re-writing ServiceContext<Clients, State> in every handler and resolver
-  type Context = ServiceContext<Clients, State>
-
-  // The shape of our State object found in `ctx.state`. This is used as state bag to communicate between middlewares.
-  interface State extends RecorderState {
-    code: number
-  }
+  type Context = ServiceContext<Clients>
 }
 
 // Export a service that defines route handlers and client options.
-export default new Service({
+export default new Service<Clients, RecorderState, ParamsContext>({
   clients,
-  routes: {
-    // `status` is the route ID from service.json. It maps to an array of middlewares (or a single handler).
-    status: method({
-      GET: [validate, status],
-    }),
+  graphql: {
+    resolvers: {
+      Query: {
+        orderFormConfiguration: async (_: any, __: any, ctx: Context) => {
+          const {
+            clients: { checkout },
+          } = ctx
+
+          return checkout.orderFormConfiguration()
+        },
+      },
+      Mutation: {
+        updateOrderFormConfiguration: async (
+          _: any,
+          {
+            orderFormConfiguration,
+          }: { orderFormConfiguration: OrderFormConfiguration },
+          ctx: Context
+        ) => {
+          const {
+            clients: { checkout },
+            vtex: { logger },
+          } = ctx
+
+          let response = null
+
+          try {
+            response = await checkout.updateOrderFormConfiguration(
+              orderFormConfiguration
+            )
+          } catch (err) {
+            logger.error({
+              error: err,
+              message: 'DigitalRiver-UpdateOrderFormConfigurationError',
+            })
+          }
+
+          return response
+        },
+      },
+    },
   },
+  routes: implementsAPI<PaymentProviderProtocol<Context>>({
+    authorizations: {
+      POST: authorize,
+    },
+    cancellations: {
+      POST: cancel,
+    },
+    settlements: {
+      POST: settle,
+    },
+    refunds: { POST: refund },
+    paymentMethods: {
+      GET: availablePaymentMethods,
+    },
+    inbound: { POST: inbound },
+    digitalRiverOrderTaxHandler: { POST: digitalRiverOrderTaxHandler },
+    updateCheckout: { POST: digitalRiverUpdateCheckout },
+  }),
 })

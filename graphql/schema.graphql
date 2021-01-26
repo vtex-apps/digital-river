@@ -1,0 +1,9 @@
+type Query {
+  orderFormConfiguration: OrderFormConfiguration @cacheControl(scope: PRIVATE)
+}
+
+type Mutation {
+  updateOrderFormConfiguration(
+    orderFormConfiguration: OrderFormConfigurationInput!
+  ): OrderFormConfiguration @cacheControl(scope: PRIVATE)
+}

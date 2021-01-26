@@ -1,0 +1,14 @@
+{
+  "admin/digital-river.title": "Digital River",
+  "admin/digital-river.admin-menu-button": "Digital River",
+  "admin/digital-river.settings.digitalRiverToken.label": "Digital River token",
+  "admin/digital-river.settings.digitalRiverToken.helpText": "Enter your Digital River API secret key/token",
+  "admin/digital-river.settings.isLive.label": "Enable production mode",
+  "admin/digital-river.settings.isLive.helpText": "Disable to use test mode, enable for production mode; make sure to use the appropriate token for the selected mode.",
+  "admin/digital-river.settings.enableTaxCalculation.label": "Enable tax calculation",
+  "admin/digital-river.settings.enableTaxCalculation.helpText": "Activate Digital River in checkout as your tax calculator. WARNING: Make sure to test checkout after changing this setting.",
+  "admin/digital-river.taxStatus.otherTaxConfiguration": "(Disabled because another tax provider is already configured)",
+  "admin/digital-river.saveSettings.buttonText": "Save settings",
+  "admin/digital-river.saveSettings.success": "Settings have been saved",
+  "admin/digital-river.saveSettings.failure": "Error saving settings (see console for details)"
+}

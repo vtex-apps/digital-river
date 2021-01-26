@@ -1,15 +1,29 @@
 {
-  "name": "service-example",
-  "vendor": "vtex",
-  "version": "0.2.0",
-  "title": "Service Example",
-  "description": "Reference app for VTEX IO Services",
+  "name": "connector-digital-river",
+  "vendor": "vtexus",
+  "version": "0.0.1-beta.2",
+  "title": "Digital River",
+  "description": "Implementation of Digital River payment method, credit card processing, and tax calculation",
   "mustUpdateAt": "2018-01-04",
   "categories": [],
-  "dependencies": {},
+  "billingOptions": {
+    "support": {
+      "url": "https://help-tickets.vtex.com/en/support?app=vtexus.connector-digital-river"
+    },
+    "type": "free",
+    "availableCountries": ["*"]
+  },
+  "dependencies": {
+    "vtex.styleguide": "9.x",
+    "vtex.apps-graphql": "2.x"
+  },
   "builders": {
     "node": "6.x",
-    "docs": "0.x"
+    "docs": "0.x",
+    "admin": "0.x",
+    "react": "3.x",
+    "graphql": "1.x",
+    "messages": "1.x"
   },
   "scripts": {
     "prereleasy": "bash lint.sh"
@@ -19,8 +33,15 @@
     {
       "name": "outbound-access",
       "attrs": {
-        "host": "httpstat.us",
-        "path": "*"
+        "host": "api.digitalriver.com",
+        "path": "/*"
+      }
+    },
+    {
+      "name": "outbound-access",
+      "attrs": {
+        "host": "portal.vtexcommercestable.com.br",
+        "path": "/api/*"
       }
     },
     {
