@@ -1,4 +1,4 @@
-import { ResolverError } from '@vtex/api'
+import { ResolverError, UserInputError, AuthenticationError } from '@vtex/api'
 import { json } from 'co-body'
 import convertIso3To2 from 'country-iso-3-to-2'
 
@@ -8,9 +8,20 @@ const getAppId = (): string => {
   return process.env.VTEX_APP_ID ?? ''
 }
 
+// NOTE! This tax integration is not yet fully functional.
+// TODO: Figure out a good way to send the checkoutId and paymentSessionId to the front end
+// Initially the intent was to save these values to the orderForm, but this causes an endless loop
+// because updating the orderForm causes a new tax calculation request to be sent.
+// Maybe the values can be returned in the tax hub response? `jurisCode` field is a possibility
+// Or maybe we need to save the values to vbase?
+
+// TODO: Move shipFrom address to each item in case items are coming from different docks
+// See checkout.ts where this was already done
+
 export async function digitalRiverOrderTaxHandler(
-  ctx: Context
-): Promise<TaxResponse> {
+  ctx: Context,
+  next: () => Promise<unknown>
+) {
   const {
     clients: { apps, digitalRiver, logistics, orderForm },
     req,
@@ -24,14 +35,34 @@ export async function digitalRiverOrderTaxHandler(
   const settings = await apps.getAppSettings(app)
 
   if (!authorization || authorization !== settings.digitalRiverToken) {
-    throw new Error('Unauthorized application!')
+    throw new AuthenticationError('Unauthorized application!')
   }
 
-  const checkoutRequest = (await json(req))?.data as CheckoutRequest
+  if (!settings.vtexAppKey || !settings.vtexAppToken) {
+    throw new AuthenticationError('Missing VTEX app key and token')
+  }
+
+  const checkoutRequest = (await json(req)) as CheckoutRequest
+
+  logger.info({
+    message: 'DigitalRiverTaxCalculation-vtexRequestBody',
+    checkoutRequest,
+  })
+
+  if (!checkoutRequest?.orderFormId) {
+    throw new UserInputError('No orderForm ID provided')
+  }
 
   const orderFormData = await orderForm.getOrderForm(
-    checkoutRequest.orderFormId
+    checkoutRequest.orderFormId,
+    settings.vtexAppKey,
+    settings.vtexAppToken
   )
+
+  logger.info({
+    message: 'DigitalRiverTaxCalculation-orderFormData',
+    orderFormData,
+  })
 
   const shippingCountry = checkoutRequest?.shippingDestination?.country
     ? convertIso3To2(checkoutRequest.shippingDestination.country)
@@ -48,12 +79,18 @@ export async function digitalRiverOrderTaxHandler(
 
   for (const item of checkoutRequest.items) {
     const newItem: CheckoutItem = {
-      skuId: item.id,
+      skuId: item.sku,
       quantity: item.quantity,
       price: item.itemPrice,
       discount: item.discountPrice
-        ? { amountOff: item.discountPrice, quantity: item.quantity }
+        ? {
+            amountOff: Math.abs(item.discountPrice / item.quantity),
+            quantity: item.quantity,
+          }
         : undefined,
+      metadata: {
+        taxHubRequestId: item.id,
+      },
     }
 
     items.push(newItem)
@@ -83,13 +120,11 @@ export async function digitalRiverOrderTaxHandler(
     applicationId,
     currency: orderFormData?.storePreferencesData?.currencyCode ?? 'USD',
     taxInclusive: false,
-    email: checkoutRequest.clientData.email,
+    email: checkoutRequest.clientData?.email ?? '',
     shipFrom: {
       address: {
-        line1: `${dockInfo.address.number ?? `${dockInfo.address.number} `}${
-          dockInfo.address.street
-        }`,
-        line2: dockInfo.address.complement ?? '',
+        line1: dockInfo.address.street,
+        line2: dockInfo.address.complement || '',
         city: dockInfo.address.city,
         postalCode: dockInfo.address.postalCode,
         state: dockInfo.address.state,
@@ -97,20 +132,24 @@ export async function digitalRiverOrderTaxHandler(
       },
     },
     shipTo: {
-      name: `${orderFormData.clientProfileData.firstName} ${orderFormData.clientProfileData.lastName}`,
-      phone: orderFormData.clientProfileData.phone ?? '',
+      name:
+        orderFormData.clientProfileData?.firstName &&
+        orderFormData.clientProfileData?.lastName
+          ? `${orderFormData.clientProfileData?.firstName} ${orderFormData.clientProfileData?.lastName}`
+          : '',
+      phone: orderFormData.clientProfileData?.phone || '',
       address: {
-        line1: orderFormData.shippingData.address.street ?? '',
-        line2: orderFormData.shippingData.address.complement ?? '',
-        city: orderFormData.shippingData.address.city ?? '',
-        state: orderFormData.shippingData.address.state ?? '',
-        postalCode: orderFormData.shippingData.address.postalCode ?? '',
+        line1: checkoutRequest.shippingDestination?.street || 'Unknown',
+        line2: '',
+        city: checkoutRequest.shippingDestination?.city || 'Unknown',
+        state: checkoutRequest.shippingDestination?.state || '',
+        postalCode: checkoutRequest.shippingDestination?.postalCode || '',
         country: shippingCountry,
       },
     },
     items,
     shippingChoice: {
-      amount: shippingTotal ?? 0,
+      amount: shippingTotal ? shippingTotal / 100 : 0,
       description: '',
       serviceLevel: '',
     },
@@ -137,24 +176,34 @@ export async function digitalRiverOrderTaxHandler(
     })
   }
 
-  try {
-    await orderForm.setCustomFields(
-      checkoutRequest.orderFormId,
-      checkoutResponse.id,
-      checkoutResponse.paymentSessionId
-    )
-  } catch (err) {
-    logger.error({
-      error: err,
-      orderFormId: checkoutRequest.orderFormId,
-      message: 'DigitalRiver-UpdateOrderFormError',
-    })
+  logger.info({
+    message: 'DigitalRiverTaxCalculation-CreateCheckoutResponse',
+    checkoutResponse,
+  })
 
-    throw new ResolverError({
-      message: 'OrderForm update failed',
-      error: err,
-    })
-  }
+  // try {
+  //   const orderFormUpdateResult = await orderForm.setCustomFields(
+  //     checkoutRequest.orderFormId,
+  //     checkoutResponse.id,
+  //     checkoutResponse.paymentSessionId
+  //   )
+
+  //   logger.info({
+  //     message: 'DigitalRiverTaxCalculation-UpdateOrderFormResult',
+  //     orderFormUpdateResult,
+  //   })
+  // } catch (err) {
+  //   logger.error({
+  //     error: err,
+  //     orderFormId: checkoutRequest.orderFormId,
+  //     message: 'DigitalRiver-UpdateOrderFormError',
+  //   })
+
+  //   throw new ResolverError({
+  //     message: 'OrderForm update failed',
+  //     error: err,
+  //   })
+  // }
 
   const taxes = [] as ItemTaxResponse[]
 
@@ -167,16 +216,19 @@ export async function digitalRiverOrderTaxHandler(
     shippingTaxPerItemRounded = Math.floor(shippingTaxPerItem * 100) / 100
   }
 
-  checkoutResponse.items.forEach((item) => {
+  const { id: checkoutId, paymentSessionId } = checkoutResponse
+
+  checkoutResponse.items.forEach((item, index) => {
     const detailsTaxes = [] as Tax[]
 
-    if (item.tax.amount > 0) {
-      detailsTaxes.push({
-        name: `TAX`,
-        rate: item.tax.rate,
-        value: item.tax.amount,
-      })
-    }
+    // if (item.tax.amount > 0) {
+    detailsTaxes.push({
+      name: `TAX`,
+      description: `${checkoutId}|${paymentSessionId}`,
+      rate: item.tax.rate,
+      value: item.tax.amount,
+    })
+    // }
 
     if (shippingTaxPerItemRounded) {
       detailsTaxes.push({
@@ -213,11 +265,23 @@ export async function digitalRiverOrderTaxHandler(
       }
     }
 
-    taxes.push({ id: item.skuId, taxes: detailsTaxes })
+    taxes.push({
+      id: item.metadata?.taxHubRequestId ?? index.toString(),
+      taxes: detailsTaxes,
+    })
   })
 
-  return {
+  logger.info({
+    message: 'DigitalRiverTaxCalculation-TaxHubResponse',
+    taxHubResponse: { itemTaxResponse: taxes, hooks: [] },
+  })
+
+  ctx.body = {
     itemTaxResponse: taxes,
     hooks: [],
   } as TaxResponse
+
+  ctx.set('Content-Type', 'application/vnd.vtex.checkout.minicart.v1+json')
+
+  await next()
 }

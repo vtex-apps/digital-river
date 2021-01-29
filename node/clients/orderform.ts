@@ -1,17 +1,31 @@
 import type { InstanceOptions, IOContext } from '@vtex/api'
 import { JanusClient } from '@vtex/api'
 
-import { withToken } from './utils'
-
 const appId = 'digital-river'
 
+const FOUR_SECONDS = 4 * 1000
+
 export default class OrderFormClient extends JanusClient {
-  constructor(context: IOContext, options?: InstanceOptions) {
-    super(context, withToken(context.adminUserAuthToken)(options))
+  constructor(ctx: IOContext, options?: InstanceOptions) {
+    super(ctx, {
+      ...options,
+      headers: {
+        ...options?.headers,
+      },
+      timeout: FOUR_SECONDS,
+    })
   }
 
-  public async getOrderForm(orderFormId: string): Promise<any> {
+  public async getOrderForm(
+    orderFormId: string,
+    vtexAppKey: string,
+    vtexAppToken: string
+  ): Promise<any> {
     return this.http.get(`/api/checkout/pub/orderForm/${orderFormId}`, {
+      headers: {
+        'X-VTEX-API-AppKey': vtexAppKey,
+        'X-VTEX-API-AppToken': vtexAppToken,
+      },
       params: { disableAutoCompletion: true },
       metric: 'orderForm-get',
     })
@@ -24,7 +38,12 @@ export default class OrderFormClient extends JanusClient {
   ): Promise<any> {
     return this.http.put(
       `/api/checkout/pub/orderForm/${orderFormId}/customData/${appId}`,
-      { checkoutId, paymentSessionId }
+      { checkoutId, paymentSessionId },
+      {
+        headers: {
+          VtexIdclientAutCookie: this.context.authToken,
+        },
+      }
     )
   }
 }

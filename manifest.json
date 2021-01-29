@@ -1,7 +1,7 @@
 {
   "name": "connector-digital-river",
   "vendor": "vtexus",
-  "version": "0.0.1-beta.2",
+  "version": "0.0.1-beta.27",
   "title": "Digital River",
   "description": "Implementation of Digital River payment method, credit card processing, and tax calculation",
   "mustUpdateAt": "2018-01-04",
@@ -43,6 +43,9 @@
         "host": "portal.vtexcommercestable.com.br",
         "path": "/api/*"
       }
+    },
+    {
+      "name": "LogisticsViewer"
     },
     {
       "name": "colossus-fire-event"

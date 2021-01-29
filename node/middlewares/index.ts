@@ -74,6 +74,7 @@ export function availablePaymentMethods(): AvailablePaymentsResponse {
       // 'JCB',
       // 'Maestro',
       // 'Mastercard',
+      'Promissories',
       // 'Visa',
     ],
   } as unknown) as AvailablePaymentsResponse
@@ -126,8 +127,11 @@ export async function authorize(
     })
   }
 
-  // Check if payment method is Digital River
-  if (content.paymentMethod === 'Digital River') {
+  // Check if payment method is Digital River (or Promissories for testing)
+  if (
+    content.paymentMethod === 'Digital River' ||
+    content.paymentMethod === 'Promissories'
+  ) {
     // TODO: get Checkout ID from orderForm
     let digitalRiverCheckoutId = ''
     let orderData = null
@@ -205,6 +209,7 @@ export async function authorize(
     } as ApprovedAuthorization
   }
 
+  // NOTE: Credit card processing is not supported yet! The below code is not finalized.
   if (isCardAuthorization(content)) {
     let checkoutId = ''
 

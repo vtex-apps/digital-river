@@ -39,6 +39,10 @@
       "path": "/_v/api/digital-river/checkout/order-tax",
       "public": true
     },
+    "createCheckout": {
+      "path": "/_v/api/digital-river/checkout/create",
+      "public": true
+    },
     "updateCheckout": {
       "path": "/_v/api/digital-river/checkout/update",
       "public": true

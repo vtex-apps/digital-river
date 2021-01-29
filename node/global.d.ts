@@ -39,9 +39,12 @@ interface CheckoutItem {
   quantity: number
   price: number
   discount?: Discount
+  shipFrom?: CheckoutShipFrom
+  metadata?: CheckoutMetadata
 }
 interface CheckoutMetadata {
-  paymentId: string
+  paymentId?: string
+  taxHubRequestId?: string
 }
 interface CheckoutShipFrom {
   address: CheckoutAddress
@@ -69,7 +72,7 @@ interface DRCheckoutPayload {
   taxInclusive: boolean
   browserIp?: string
   email: string
-  shipFrom: CheckoutShipFrom
+  shipFrom?: CheckoutShipFrom
   shipTo: CheckoutShipTo
   items: CheckoutItem[]
   upstreamId?: string
@@ -300,6 +303,7 @@ interface OrderResponseItem {
   duties: Duties
   availableToRefundAmount: number
   fees: Fees
+  metadata?: CheckoutMetadata
 }
 interface Owner {
   firstName: string
@@ -355,11 +359,11 @@ interface CheckoutRequest {
   orderFormId: string
   salesChannel: string
   items: OrderTaxItem[]
-  clientEmail: string
-  clientData: OrderTaxClient
+  clientEmail: string | null
+  clientData: OrderTaxClient | null
   shippingDestination: OrderTaxShippingInformation
   totals: OrderTaxTotal[]
-  paymentData: OrderTaxPayment[]
+  paymentData: OrderTaxPayment[] | null
 }
 
 interface OrderTaxItem {
@@ -421,6 +425,7 @@ interface ItemTaxResponse {
 interface Tax {
   name: string
   rate?: number
+  description?: string
   value: number
 }
 

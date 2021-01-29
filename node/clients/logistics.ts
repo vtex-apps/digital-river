@@ -1,11 +1,18 @@
 import type { InstanceOptions, IOContext } from '@vtex/api'
 import { JanusClient } from '@vtex/api'
 
-import { withToken } from './utils'
+const FOUR_SECONDS = 4 * 1000
 
 export default class LogisticsClient extends JanusClient {
-  constructor(context: IOContext, options?: InstanceOptions) {
-    super(context, withToken(context.adminUserAuthToken)(options))
+  constructor(ctx: IOContext, options?: InstanceOptions) {
+    super(ctx, {
+      ...options,
+      headers: {
+        ...options?.headers,
+        VtexIdclientAutCookie: ctx.authToken,
+      },
+      timeout: FOUR_SECONDS,
+    })
   }
 
   public getDocksById = (dockId: string) =>
@@ -22,9 +29,7 @@ export default class LogisticsClient extends JanusClient {
     return {
       root: () => '/api',
       docks: (dockId: string) =>
-        `${this.routes.root()}/logistics/pvt/configuration/docks/${dockId}?an=${
-          this.context.account
-        }`,
+        `${this.routes.root()}/logistics/pvt/configuration/docks/${dockId}`,
       sku: (skuId: string) =>
         `${this.routes.root()}/catalog_system/pvt/sku/stockkeepingunitbyid/${skuId}`,
     }
