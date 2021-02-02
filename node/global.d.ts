@@ -258,7 +258,7 @@ interface Fees {
   taxAmount: number
 }
 interface FulfillmentItem {
-  skuId: string
+  itemId: string
   quantity?: number
   cancelQuantity?: number
 }
@@ -319,10 +319,12 @@ interface PaymentConfiguration {
   defaultPaymentSystemToApplyOnUserOrderForm?: unknown | null
 }
 interface RefundItem {
+  itemId: string
   type: string
   amount: number
 }
 interface ReturnItem {
+  itemId: string
   skuId: string
   quantity: number
 }

@@ -21,6 +21,7 @@ import { digitalRiverOrderTaxHandler } from './middlewares/tax'
 import {
   digitalRiverCreateCheckout,
   digitalRiverUpdateCheckout,
+  countryCode,
 } from './middlewares/checkout'
 
 const TIMEOUT_MS = 800
@@ -88,14 +89,40 @@ export default new Service<Clients, RecorderState, ParamsContext>({
       authorizations: {
         POST: authorize,
       },
+      authorizationsACCT: {
+        POST: authorize,
+      },
+      authorizationsAffirm: {
+        POST: authorize,
+      },
       cancellations: {
+        POST: cancel,
+      },
+      cancellationsACCT: {
+        POST: cancel,
+      },
+      cancellationsAffirm: {
         POST: cancel,
       },
       settlements: {
         POST: settle,
       },
+      settlementsACCT: {
+        POST: settle,
+      },
+      settlementsAffirm: {
+        POST: settle,
+      },
       refunds: { POST: refund },
+      refundsACCT: { POST: refund },
+      refundsAffirm: { POST: refund },
       paymentMethods: {
+        GET: availablePaymentMethods,
+      },
+      paymentMethodsACCT: {
+        GET: availablePaymentMethods,
+      },
+      paymentMethodsAffirm: {
         GET: availablePaymentMethods,
       },
       inbound: { POST: inbound },
@@ -105,5 +132,6 @@ export default new Service<Clients, RecorderState, ParamsContext>({
     }),
     createCheckout: method({ POST: [digitalRiverCreateCheckout] }),
     updateCheckout: method({ POST: [digitalRiverUpdateCheckout] }),
+    getISO2CountryCode: method({ GET: [countryCode] }),
   },
 })

@@ -40,6 +40,11 @@ export async function digitalRiverCreateCheckout(
     throw new UserInputError('No orderForm ID provided')
   }
 
+  logger.info({
+    message: 'DigitalRiverCreateCheckout-requestReceived',
+    orderFormId: createCheckoutRequest.orderFormId,
+  })
+
   const orderFormData = await orderForm.getOrderForm(
     createCheckoutRequest.orderFormId,
     settings.vtexAppKey,
@@ -85,7 +90,7 @@ export async function digitalRiverCreateCheckout(
       !dockInfo.address?.country?.acronym
     ) {
       logger.error({
-        message: 'DigitalRiverTaxCalculation-DockAddressMisconfiguration',
+        message: 'DigitalRiverCreateCheckout-dockAddressMisconfiguration',
         dockInfo,
       })
       throw new Error('dock-address-misconfiguration')
@@ -134,32 +139,6 @@ export async function digitalRiverCreateCheckout(
     items.push(newItem)
   }
 
-  // Digital River only supports a single shipFrom address per checkout,
-  // so we'll use the address of the first dock
-  // const [{ selectedSla }] = orderFormData.shippingData.logisticsInfo
-
-  // const slaInfo = orderFormData.shippingData.logisticsInfo[0].slas as any[]
-
-  // const [{ dockId }] = slaInfo.find(
-  //   ({ name }: { name: string }) => name === selectedSla
-  // ).deliveryIds
-
-  // const dockInfo = await logistics.getDocksById(dockId)
-
-  // if (
-  //   !dockInfo.address?.street ||
-  //   !dockInfo.address?.city ||
-  //   !dockInfo.address?.state ||
-  //   !dockInfo.address?.postalCode ||
-  //   !dockInfo.address?.country?.acronym
-  // ) {
-  //   logger.error({
-  //     message: 'DigitalRiverTaxCalculation-DockAddressMisconfiguration',
-  //     dockInfo,
-  //   })
-  //   throw new Error('dock-address-misconfiguration')
-  // }
-
   const shippingTotal = orderFormData.totalizers.find(
     ({ id }: { id: string }) => id === 'Shipping'
   )?.value
@@ -169,16 +148,6 @@ export async function digitalRiverCreateCheckout(
     currency: orderFormData?.storePreferencesData?.currencyCode ?? 'USD',
     taxInclusive: true,
     email: orderFormData.clientProfileData?.email ?? '',
-    // shipFrom: {
-    //   address: {
-    //     line1: dockInfo.address.street,
-    //     line2: dockInfo.address.complement || '',
-    //     city: dockInfo.address.city,
-    //     postalCode: dockInfo.address.postalCode,
-    //     state: dockInfo.address.state,
-    //     country: convertIso3To2(dockInfo.address.country.acronym),
-    //   },
-    // },
     shipTo: {
       name:
         orderFormData.clientProfileData?.firstName &&
@@ -205,7 +174,7 @@ export async function digitalRiverCreateCheckout(
   }
 
   logger.info({
-    message: 'DigitalRiverCreateCheckout-CreateCheckoutRequest',
+    message: 'DigitalRiverCreateCheckout-createCheckoutRequest',
     checkoutPayload,
   })
 
@@ -220,7 +189,7 @@ export async function digitalRiverCreateCheckout(
     logger.error({
       error: err,
       orderFormId: createCheckoutRequest.orderFormId,
-      message: 'DigitalRiverCreateCheckout-CreateCheckoutFailure',
+      message: 'DigitalRiverCreateCheckout-createCheckoutFailure',
     })
 
     throw new ResolverError({
@@ -230,7 +199,7 @@ export async function digitalRiverCreateCheckout(
   }
 
   logger.info({
-    message: 'DigitalRiverCreateCheckout-CreateCheckoutResponse',
+    message: 'DigitalRiverCreateCheckout-createCheckoutResponse',
     checkoutResponse,
   })
 
@@ -265,6 +234,12 @@ export async function digitalRiverUpdateCheckout(
 
   const { checkoutId, sourceId } = updateCheckoutRequest
 
+  logger.info({
+    message: 'DigitalRiverUpdateCheckout-requestReceived',
+    checkoutId,
+    sourceId,
+  })
+
   let updateCheckoutResponse = null
 
   try {
@@ -276,7 +251,7 @@ export async function digitalRiverUpdateCheckout(
   } catch (err) {
     logger.error({
       error: err,
-      message: 'DigitalRiver-UpdateCheckoutFailure',
+      message: 'DigitalRiverUpdateCheckout-updateCheckoutFailure',
     })
 
     throw new ResolverError({
@@ -285,7 +260,26 @@ export async function digitalRiverUpdateCheckout(
     })
   }
 
+  logger.info({
+    message: 'DigitalRiverUpdateCheckout-updateCheckoutResponse',
+    data: updateCheckoutResponse,
+  })
+
   ctx.body = { updateCheckoutResponse }
 
+  await next()
+}
+
+export async function countryCode(ctx: Context, next: () => Promise<unknown>) {
+  const { country } = ctx.vtex.route.params
+
+  if (!country || country.length !== 3) {
+    throw new UserInputError('3 digit country code must be provided')
+  }
+
+  const code = convertIso3To2((country as string).toUpperCase())
+
+  ctx.status = 200
+  ctx.body = { code }
   await next()
 }

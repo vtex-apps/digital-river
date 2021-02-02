@@ -40,7 +40,7 @@ type PaymentProviderContext<
 interface DigitalRiverAuthorization extends PaymentRequest {
   reference: string
   orderId: string
-  paymentMethod: PaymentMethod | 'Digital River'
+  paymentMethod: PaymentMethod | 'DigitalRiver' | 'Affirm'
   paymentMethodCustomCode: Maybe<string>
   merchantName: string
   value: number
@@ -67,8 +67,9 @@ const getAppId = (): string => {
 export function availablePaymentMethods(): AvailablePaymentsResponse {
   return ({
     paymentMethods: [
+      'Affirm', // for testing
       // 'American Express',
-      'Digital River',
+      'DigitalRiver',
       // 'Diners',
       // 'Discover',
       // 'JCB',
@@ -92,6 +93,11 @@ export async function authorize(
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
 
+  logger.info({
+    message: 'DigitalRiverAuthorize-requestReceived',
+    data: content,
+  })
+
   // check if order already exists in Digital River
   try {
     const getOrdersResponse = await digitalRiver.getOrdersByVTEXOrderId({
@@ -109,6 +115,13 @@ export async function authorize(
         status = 'denied'
       }
 
+      logger.info({
+        message: 'DigitalRiverAuthorize-getDigitalRiverOrderResponse',
+        data: order,
+        orderId: content.orderId,
+        status,
+      })
+
       return {
         authorizationId: '',
         code: undefined,
@@ -123,13 +136,15 @@ export async function authorize(
   } catch (err) {
     logger.error({
       error: err,
-      message: 'DigitalRiver-GetOrdersFailure',
+      orderId: content.orderId,
+      message: 'DigitalRiverAuthorize-getDigitalRiverOrdersFailure',
     })
   }
 
-  // Check if payment method is Digital River (or Promissories for testing)
+  // Check if payment method is Digital River (or Affirm or Promissories for testing)
   if (
-    content.paymentMethod === 'Digital River' ||
+    content.paymentMethod === 'DigitalRiver' ||
+    content.paymentMethod === 'Affirm' ||
     content.paymentMethod === 'Promissories'
   ) {
     // TODO: get Checkout ID from orderForm
@@ -137,7 +152,18 @@ export async function authorize(
     let orderData = null
 
     try {
-      orderData = await orders.getOrder(content.orderId)
+      orderData = await orders.getOrder(
+        `${content.orderId}-01`,
+        settings.vtexAppKey,
+        settings.vtexAppToken
+      )
+
+      logger.info({
+        message: 'DigitalRiverAuthorize-getVTEXOrderResponse',
+        orderId: content.orderId,
+        data: orderData,
+      })
+
       if (orderData?.customData?.customApps?.length) {
         const customFields = orderData.customData.customApps.find(
           (x: any) => x.id === 'digital-river'
@@ -151,7 +177,7 @@ export async function authorize(
       logger.error({
         error: err,
         orderId: content.orderId,
-        message: 'DigitalRiver-GetVTEXOrderFailure',
+        message: 'DigitalRiverAuthorize-getVTEXOrderFailure',
       })
 
       return {
@@ -178,11 +204,17 @@ export async function authorize(
         settings,
         checkoutId: digitalRiverCheckoutId,
       })
+
+      logger.info({
+        message: 'DigitalRiverAuthorize-createOrderResponse',
+        orderId: content.orderId,
+        data: orderResponse,
+      })
     } catch (err) {
       logger.error({
         error: err,
         orderId: content.orderId,
-        message: 'DigitalRiver-CreateOrderFailure',
+        message: 'DigitalRiverAuthorize-createOrderFailure',
       })
 
       return {
@@ -306,7 +338,7 @@ export async function authorize(
         logger.error({
           error: err,
           orderId: content.orderId,
-          message: 'DigitalRiver-CreateCheckoutFailure',
+          message: 'DigitalRiverAuthorize-createCheckoutFailure',
         })
 
         throw new ResolverError({
@@ -352,7 +384,7 @@ export async function authorize(
         logger.error({
           error: err,
           orderId: content.orderId,
-          message: 'DigitalRiver-CreateSourceFailure',
+          message: 'DigitalRiverAuthorize-createSourceFailure',
         })
 
         throw new ResolverError({
@@ -387,7 +419,7 @@ export async function authorize(
         logger.error({
           error: err,
           orderId: content.orderId,
-          message: 'DigitalRiver-UpdateCheckoutFailure',
+          message: 'DigitalRiverAuthorize-updateCheckoutFailure',
         })
 
         throw new ResolverError({
@@ -412,7 +444,7 @@ export async function authorize(
       logger.error({
         error: err,
         orderId: content.orderId,
-        message: 'DigitalRiver-CreateOrderFailure',
+        message: 'DigitalRiverAuthorize-createOrderFailure',
       })
 
       throw new ResolverError({ message: 'Order creation error', error: err })
@@ -434,6 +466,11 @@ export async function authorize(
     } as CreditCardAuthorized
   }
 
+  logger.warn({
+    message: 'DigitalRiverAuthorize-paymentMethodNotSupported',
+    data: content,
+  })
+
   return {
     authorizationId: '',
     code: undefined,
@@ -451,36 +488,56 @@ export async function settle(
 ): Promise<SettlementResponse> {
   const {
     request: {
-      body: { paymentId, requestId, transactionId, value },
+      body,
+      body: { paymentId, requestId, value },
     },
     clients: { apps, digitalRiver },
     vtex: { logger },
   } = ctx
 
+  const { tid } = ctx.request.body as any
+
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
+
+  logger.info({
+    message: 'DigitalRiverSettle-requestReceived',
+    data: body,
+  })
 
   let getOrderResponse = null
 
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: transactionId,
+      orderId: tid,
+    })
+
+    logger.info({
+      message: 'DigitalRiverSettle-getDigitalRiverOrderResponse',
+      tid,
+      paymentId,
+      data: getOrderResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-GetOrderByIdFailure',
+      message: 'DigitalRiverSettle-getOrderByIdFailure',
     })
 
     throw new ResolverError({ message: 'Get order by ID error', error: err })
   }
 
   const payload = {
-    items: getOrderResponse.items,
-    orderId: transactionId,
+    items: getOrderResponse.items.map((item) => {
+      return {
+        itemId: item.id,
+        quantity: item.quantity,
+      }
+    }),
+    orderId: tid,
   } as DRFulfillmentPayload
 
   let settleResponse = null
@@ -490,12 +547,19 @@ export async function settle(
       settings,
       payload,
     })
+
+    logger.info({
+      message: 'DigitalRiverSettle-settleResponse',
+      tid,
+      paymentId,
+      data: settleResponse,
+    })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-FulfillmentFailure',
+      message: 'DigitalRiverSettle-fulfillmentFailure',
     })
 
     throw new ResolverError({ message: 'Fulfillment error', error: err })
@@ -516,35 +580,50 @@ export async function refund(
 ): Promise<RefundResponse> {
   const {
     request: {
-      body: { paymentId, requestId, transactionId, value },
+      body,
+      body: { paymentId, requestId, value },
     },
     clients: { digitalRiver, apps },
     vtex: { logger },
   } = ctx
 
+  const { tid } = ctx.request.body as any
+
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
+
+  logger.info({
+    message: 'DigitalRiverRefund-requestReceived',
+    data: body,
+  })
 
   let getOrderResponse = null
 
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: transactionId,
+      orderId: tid,
+    })
+
+    logger.info({
+      message: 'DigitalRiverRefund-getDigitalRiverOrderResponse',
+      tid,
+      paymentId,
+      data: getOrderResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-GetOrderByIdFailure',
+      message: 'DigitalRiverRefund-getOrderByIdFailure',
     })
 
     throw new ResolverError({ message: 'Get order by ID error', error: err })
   }
 
   const payload = {
-    orderId: transactionId,
+    orderId: tid,
     currency: getOrderResponse.currency,
     amount: value,
   } as DRRefundPayload
@@ -553,12 +632,19 @@ export async function refund(
 
   try {
     refundResponse = await digitalRiver.refundOrder({ settings, payload })
+
+    logger.info({
+      message: 'DigitalRiverRefund-refundResponse',
+      tid,
+      paymentId,
+      data: refundResponse,
+    })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-RefundOrderFailure',
+      message: 'DigitalRiverRefund-refundOrderFailure',
     })
 
     throw new ResolverError({ message: 'Refund failure', error: err })
@@ -579,36 +665,56 @@ export async function cancel(
 ): Promise<CancellationResponse> {
   const {
     request: {
+      body,
       body: { transactionId, paymentId, requestId },
     },
     clients: { digitalRiver, apps },
     vtex: { logger },
   } = ctx
 
+  const { tid } = ctx.request.body as any
+
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
+
+  logger.info({
+    message: 'DigitalRiverCancel-requestReceived',
+    data: body,
+  })
 
   let getOrderResponse = null
 
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: transactionId,
+      orderId: tid,
+    })
+
+    logger.info({
+      message: 'DigitalRiverCancel-getDigitalRiverOrderResponse',
+      tid,
+      paymentId,
+      data: getOrderResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-GetOrderByIdFailure',
+      message: 'DigitalRiverCancel-getOrderByIdFailure',
     })
 
     throw new ResolverError({ message: 'Get order by ID error', error: err })
   }
 
   const payload = {
-    orderId: transactionId,
-    items: getOrderResponse.items,
+    orderId: tid,
+    items: getOrderResponse.items.map((item) => {
+      return {
+        itemId: item.id,
+        cancelQuantity: item.quantity,
+      }
+    }),
   } as DRFulfillmentPayload
 
   let cancelResponse = null
@@ -618,12 +724,19 @@ export async function cancel(
       settings,
       payload,
     })
+
+    logger.info({
+      message: 'DigitalRiverCancel-cancelResponse',
+      tid,
+      paymentId,
+      data: cancelResponse,
+    })
   } catch (err) {
     logger.error({
       error: err,
-      transactionId,
+      tid,
       paymentId,
-      message: 'DigitalRiver-CancelOrderFailure',
+      message: 'DigitalRiverCancel-cancelOrderFailure',
     })
 
     throw new ResolverError({ message: 'Cancel order error', error: err })
