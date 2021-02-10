@@ -1,127 +1,287 @@
+📢 Use this project, [contribute](https://github.com/vtex-apps/digital-river) to it or open issues to help evolve it using [Store Discussion](https://github.com/vtex-apps/store-discussion).
 
+# Digital River
 
-# Service Example
+<!-- DOCS-IGNORE:start -->
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
-A reference app implementing a VTEX IO service with HTTP route handlers.
+[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
 
-![Service Example Architecture](https://user-images.githubusercontent.com/18706156/77381360-72489680-6d5c-11ea-9da8-f4f03b6c5f4c.jpg)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+<!-- DOCS-IGNORE:end -->
 
-We use [**KoaJS**](https://koajs.com/) as the web framework, so you might want to get into that
+This app integrates Digital River with VTEX checkout, allowing shoppers to interact with Digital River's 'Drop-In' component and select from a variety of payment methods all processed through a single Digital River account.
 
-We also use the [**node-vtex-api**](https://github.com/vtex/node-vtex-api), a VTEX set of utilities for Node services. You can import this package using NPM from `@vtex/api` (already imported on this project)
+> ⚠️ _This app is under development. For this initial version, orders are sent to Digital River as tax inclusive. Future versions of this app will support integration of Digital River as a tax calculation provider._
 
-- Start from `node/index.ts` and follow the comments and imports :)
+## Configuration
 
-## Recipes
+1. Install this app in the desired account using the CLI command `vtex install vtexus.connector-digital-river`. If you have multiple accounts configured in a marketplace-seller relationship, install the app and repeat the following steps in each of the related accounts.
+2. In your admin sidebar, access the **Other** section and click on `Digital River`.
+3. In the settings fields, enter your `Digital River token`, `VTEX App Key` and `VTEX App Token`. For initial testing, use a test `Digital River token` and leave the `Enable production mode` toggle turned off.
+4. Add the following JavaScript to your `checkout6-custom.js` file, which is typically edited by accessing the **Store Setup** section in your admin sidebar and clicking `Checkout`, then clicking the blue gear icon and then the `Code` tab:
 
-### Defining routes on _service.json_ 
-```json
-{
-  "memory": 256,
-  "ttl": 10,
-  "timeout": 2,
-  "minReplicas": 2,
-  "maxReplicas": 4,
-  "routes": {
-    "status": {
-      "path": "/_v/status/:code",
-      "public": true
-    }
-  }
+```js
+// DIGITAL RIVER
+let checkoutUpdated = false
+const digitalRiverPaymentGroupClass = '.DigitalRiverPaymentGroup'
+const digitalRiverPaymentGroupButtonID =
+  'payment-group-DigitalRiverPaymentGroup'
+
+const digitalRiverPublicKey = 'pk_test_1234567890' // NOTE! Enter your Digital River public API key here
+
+function getCountryCode(country) {
+  return fetch(`/_v/api/digital-river/checkout/country-code/${country}`)
+    .then((response) => {
+      return response.json()
+    })
+    .then((json) => {
+      return json.code
+    })
 }
-```
 
-The `service.json` file that sits on the root of the `node` folder holds informations about this service, like the maximum timeout and number of replicas, what might be discontinued on the future, but also **sets its routes**. 
+function renderErrorMessage(title, body, append = false) {
+  if (!append) {
+    $(digitalRiverPaymentGroupClass).html(
+      `<div id='drop-in'><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${title}</h5><div><p>${body}</p></div></div></div></div>`
+    )
 
-Koa uses the [path-to-regexp](https://github.com/pillarjs/path-to-regexp) format for defining routes and, as seen on the example, we use the `:code` notation for declaring a **route param** named code, in this case. A HTTP request for `https://{{workspace}}--{{account}}.myvtex.com/_v/status/500` will match the route we've defined. 
+    return
+  }
 
-For cach _key_ on the `routes` object, there should be a **corresponding entry** on the exported Service object on `node/index.ts`, this will hook your code to a specific route.
+  $('#VTEX-DR-error').remove()
+  $('.DR-pay-button').after(
+    `<div id='VTEX-DR-error'><h5 class="DR-error-message">${title}</h5><div><p>${body}</p></div></div>`
+  )
+}
 
-### Access Control
-You can also provide a `public` option for each route. If `true`, that resource will be reachable for everyone on the internet. If `false`, VTEX credentials will be requested as well.
+function updateOrderForm(method, checkoutId) {
+  const orderFormID = vtexjs.checkout.orderFormId
 
-Another way of controlling access to specific routes is using **ReBACs (Resource-based access)**, that supports more robust configuration. You can read more [on this document](https://docs.google.com/document/d/1ZxNHMFIXfXz3BgTN9xyrHL3V5dYz14wivYgQjRBZ6J8/edit#heading=h.z7pad3qd2qw7) (VTEX only).
+  $.ajax({
+    url: `${window.location.origin}/api/checkout/pub/orderForm/${orderFormID}/customData/digital-river/checkoutId`,
+    type: method,
+    data: { value: checkoutId },
+    success() {
+      vtexjs.checkout.getOrderForm().done((orderForm) => {
+        const { clientProfileData } = orderForm
 
-#### Query String
-For `?accepting=query-string`, you **don't need to declare anything**, as any query provided to the URL will already be available for you to use on the code as `ctx.query`, already parsed as an object, or `ctx.queryString`, taken directly from the URL as a string.
+        return vtexjs.checkout.sendAttachment(
+          'clientProfileData',
+          clientProfileData
+        )
+      })
+    },
+  })
+}
 
-#### Route Params
-Route Params will be available for you to use on the code as `ctx.vtex.params`, already parsed as an object.
-For a path like `/_v/status/:code`, if you receive the request `/_v/status/200`, `ctx.vtex.params` will return `{ code: '200' }`
+function showBuyNowButton() {
+  $('.payment-submit-wrap').show()
+}
 
-#### HTTP methods
-When you define a route on the `service.json`, your NodeJS handlers for that route will be triggered  **on every HTTP method** (GET, POST, PUT...), so, if you need to handle them separately you need to implement a "sub-router". Fortunately, the _node-vtex-api_ provides a helper function `method`, exported from `@vtex/api`, to accomplish that behaviour. Instead of passing your handlers directly to the corresponding route on `index.ts`, you pass a `method` call passing **an object with the desired method as key and one handler as its corresponding value**. Check this example:
-```typescript
-import { method } from '@vtex/api'
-...
+function hideBuyNowButton() {
+  $('.payment-submit-wrap').hide()
+}
 
-export default new Service<Clients, State>({
-  clients,
-  routes: {
-    status: method({
-      GET: statusGetHandler,
-      POST: statusPostHandler,
-    }),
-  },
+function clickBuyNowButton() {
+  $('#payment-data-submit').click()
+}
+
+function loadDigitalRiver() {
+  const e = document.createElement('script')
+
+  ;(e.type = 'text/javascript'),
+    (e.src = 'https://js.digitalriver.com/v1/DigitalRiver.js')
+  const [t] = document.getElementsByTagName('script')
+
+  t.parentNode.insertBefore(e, t)
+
+  const f = document.createElement('link')
+
+  ;(f.type = 'text/css'),
+    (f.rel = 'stylesheet'),
+    (f.href = 'https://js.digitalriverws.com/v1/css/DigitalRiver.css')
+  const [u] = document.getElementsByTagName('link')
+
+  u.parentNode.insertBefore(f, u)
+}
+
+async function initDigitalRiver() {
+  if ($('#drop-in').length) {
+    if (!checkoutUpdated) hideBuyNowButton()
+
+    return
+  }
+
+  $(digitalRiverPaymentGroupClass).html(
+    `<div id='drop-in'><i class="icon-spinner icon-spin"></i></div>`
+  )
+
+  vtexjs.checkout.getOrderForm().then((orderForm) => {
+    if (
+      !orderForm.shippingData.address.street ||
+      !orderForm.shippingData.address.city ||
+      !orderForm.shippingData.address.state ||
+      !orderForm.shippingData.address.postalCode ||
+      !orderForm.shippingData.address.country
+    ) {
+      renderErrorMessage(
+        'Incomplete shipping address detected.',
+        'Please check your shipping information and try again.',
+        false
+      )
+
+      return
+    }
+
+    fetch('/_v/api/digital-river/checkout/create', {
+      method: 'POST',
+      body: JSON.stringify({ orderFormId: orderForm.orderFormId }),
+    })
+      .then((response) => {
+        return response.json()
+      })
+      .then(async (response) => {
+        const { checkoutId = null, paymentSessionId = null } = response
+
+        if (!checkoutId || !paymentSessionId) {
+          renderErrorMessage(
+            'Digital River checkout encountered an error.',
+            'Please check your shipping information and try again.',
+            false
+          )
+
+          return
+        }
+
+        updateOrderForm('PUT', checkoutId)
+
+        $(digitalRiverPaymentGroupClass).html(`<div id='drop-in'></div>`)
+
+        const digitalriver = new DigitalRiver(digitalRiverPublicKey, {
+          locale: orderForm.clientPreferencesData.locale
+            ? orderForm.clientPreferencesData.locale.toLowerCase()
+            : 'en-us',
+        })
+
+        const country = await getCountryCode(
+          orderForm.shippingData.address.country
+        )
+
+        const configuration = {
+          sessionId: paymentSessionId,
+          options: {
+            flow: 'checkout',
+            showSavePaymentAgreement: false,
+            button: {
+              type: 'buyNow',
+            },
+            showComplianceSection: true,
+            showTermsOfSaleDisclosure: false,
+          },
+          billingAddress: {
+            firstName: orderForm.clientProfileData.firstName,
+            lastName: orderForm.clientProfileData.lastName,
+            email: orderForm.clientProfileData.email,
+            phoneNumber: orderForm.clientProfileData.phone,
+            address: {
+              line1: `${
+                orderForm.shippingData.address.number
+                  ? `${orderForm.shippingData.address.number} `
+                  : ''
+              }${orderForm.shippingData.address.street}`,
+              line2: orderForm.shippingData.address.complement,
+              city: orderForm.shippingData.address.city,
+              state: orderForm.shippingData.address.state,
+              postalCode: orderForm.shippingData.address.postalCode,
+              country,
+            },
+          },
+          onSuccess(data) {
+            fetch('/_v/api/digital-river/checkout/update', {
+              method: 'POST',
+              body: JSON.stringify({ checkoutId, sourceId: data.source.id }),
+            })
+              .then((rawResponse) => {
+                return rawResponse.json()
+              })
+              .then(() => {
+                checkoutUpdated = true
+                clickBuyNowButton()
+              })
+          },
+          onCancel(data) {},
+          onError(data) {
+            console.error(data)
+            renderErrorMessage(
+              'Unable to check out with selected payment method.',
+              'Please try a different payment method and try again.',
+              true
+            )
+          },
+          onReady(data) {},
+        }
+
+        const dropin = digitalriver.createDropin(configuration)
+
+        dropin.mount('drop-in')
+      })
+  })
+}
+
+$(document).ready(function () {
+  loadDigitalRiver()
+})
+
+$(window).on('checkoutRequestBegin.vtex', (evt, ajaxOptions) => {
+  if (
+    $('.payment-group-item.active').attr('id') ===
+    digitalRiverPaymentGroupButtonID
+  ) {
+    initDigitalRiver()
+  } else {
+    showBuyNowButton()
+  }
+})
+
+$(window).on('hashchange', function (ev) {
+  if (ev.originalEvent.newURL.includes('profile', 0)) {
+    document.getElementById('opt-in-newsletter').checked = false
+  }
+
+  if (
+    ~window.location.hash.indexOf('#/payment') &&
+    $('.payment-group-item.active').attr('id') ===
+      digitalRiverPaymentGroupButtonID
+  ) {
+    initDigitalRiver()
+  }
 })
 ```
 
-### Throwing errors
+5. In your admin sidebar, access the **Transactions** section and click `Payments > Settings`.
+6. Click the `Gateway Affiliations` tab and click the green plus sign to add a new affiliation.
+7. Click `DigitalRiverV2` from the **Others** list.
+8. Modify the `Affiliation name` if desired and then click `Save`. Leave `Application Key` and `Application Token` blank.
+9. Click the `Payment Conditions` tab and click the green plus sign to add a new payment condition.
+10. Click `DigitalRiverV2` from the **Other** list.
+11. In the `Process with affiliation` dropdown, choose the name of the affiliation that you created in step 8. Set the status to `Active` and click `Save`. Note that this will activate the payment method in checkout!
+12. After successfully testing the payment method in test mode, return to the Digital River app settings page from step 2. Replace your test `Digital River token` with a production token and turn on the `Enable Production mode` toggle. Save the settings and your checkout page will be all set to start accepting production orders.
 
-When building a HTTP service, we should follow HTTP rules regarding data types, cache, authorization, and status code. Our example app sets a `ctx.status` value that will be used as a HTTP status code return value, but often we also want to give proper information about errors as well.
+<!-- DOCS-IGNORE:start -->
 
-The **node-vtex-api** already exports a handful of **custom error classes** that can be used for that purpose, like the `NotFoundError`. You just need to throw them inside one of the the route handlers that the appropriate response will be sent to the server.
+## Contributors ✨
 
-```typescript
-import { UserInputError } from '@vtex/api'
+Thanks goes to these wonderful people:
 
-export async function validate(ctx: Context, next: () => Promise<any>) {
-  const { code } = ctx.vtex.route.params
-  if (isNaN(code) || code < 100 || code > 600) {
-    throw new UserInputError('Code must be a number between 100 and 600')
-  }
-...
-```
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
 
-You can check all the available errors [here](https://github.com/vtex/node-vtex-api/tree/fd6139349de4e68825b1074f1959dd8d0c8f4d5b/src/errors), but some are not useful for just-HTTP services. Check the most useful ones:
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
-|Error Class | HTTP Code |
-|--|:--:|
-| `UserInputError` | 400 |
-| `AuthenticationError` | 401 |
-| `ForbiddenError` | 403 |
-| `NotFoundError` | 404 |
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!
 
-You can also **create your custom error**, just see how it's done above ;)
-
-### Reading a JSON body
-
-When writing POST or PUT handlers, for example, often you need to have access to the **request body** that comes as a JSON format, which is not provided directly by the handler function.
-
-For this, you have to use the [co-body](https://www.npmjs.com/package/co-body) package that will parse the request into a readable JSON object, used as below: 
-```typescript
-import { json } from 'co-body'
-export async function method(ctx: Context, next: () => Promise<any>) {
-    const body = await json(ctx.req)
-```
-
-### Other example apps
-
-We use Node services across all VTEX, and there are a lot inspiring examples. If you want to dive deeper on learning about this subject, don't miss those internal apps: [builder-hub](https://github.com/vtex/builder-hub) or [store-sitemap](https://github.com/vtex-apps/store-sitemap)
-
-
-## Testing
-
-`@vtex/test-tools` and `@types/jest` should be installed on `./node` package as `devDependencies`.
-
-Run `vtex test` and [Jest](https://jestjs.io/) will do its thing.
-
-Check the `node/__tests__/simple.test.ts` test case and also [Jest's Documentation](https://jestjs.io/docs/en/getting-started).
-
-## Splunk Dashboard
-
-We have an (for now, VTEX-only, internal) Splunk dashboard to show all metrics related to your app. You can find it [here](https://splunk7.vtex.com/en-US/app/vtex_colossus/node_app_metrics).
-
-After linking this app and making some requests, you can select `vtex.service-example` and see the metrics for your app. **Don't forget to check the box Development, as you are linking your app in a development workspace**.
-
-For convenience, the link for the current version: https://splunk7.vtex.com/en-US/app/vtex_colossus/node_app_metrics?form.time.earliest=-30m%40m&form.time.latest=%40m&form.picked_context=false&form.picked_region=aws-us-east-*&form.picked_service=vtex.service-example
+<!-- DOCS-IGNORE:end -->

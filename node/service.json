@@ -4,15 +4,11 @@
   "ttl": 43200,
   "timeout": 40,
   "minReplicas": 2,
-  "maxReplicas": 4,
+  "maxReplicas": 12,
   "workers": 1,
   "routes": {
     "paymentMethods": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payment-methods",
-      "public": true
-    },
-    "paymentMethodsAffirm": {
-      "path": "/affirm/payment-provider/payment-methods",
       "public": true
     },
     "paymentMethodsACCT": {
@@ -27,20 +23,12 @@
       "path": "/_v/api/connectors/digital-river/payments",
       "public": true
     },
-    "authorizationsAffirm": {
-      "path": "/affirm/payment-provider/payments",
-      "public": true
-    },
     "cancellations": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments/:paymentId/cancellations",
       "public": true
     },
     "cancellationsACCT": {
       "path": "/_v/api/connectors/digital-river/payments/:paymentId/cancellations",
-      "public": true
-    },
-    "cancellationsAffirm": {
-      "path": "/affirm/payment-provider/payments/:paymentId/cancellations",
       "public": true
     },
     "settlements": {
@@ -51,20 +39,12 @@
       "path": "/_v/api/connectors/digital-river/payments/:paymentId/settlements",
       "public": true
     },
-    "settlementsAffirm": {
-      "path": "/affirm/payment-provider/payments/:paymentId/settlements",
-      "public": true
-    },
     "refunds": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments/:paymentId/refunds",
       "public": true
     },
     "refundsACCT": {
       "path": "/_v/api/connectors/digital-river/payments/:paymentId/refunds",
-      "public": true
-    },
-    "refundsAffirm": {
-      "path": "/affirm/payment-provider/payments/:paymentId/refunds",
       "public": true
     },
     "inbound": {

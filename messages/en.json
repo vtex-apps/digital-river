@@ -5,7 +5,7 @@
   "admin/digital-river.settings.digitalRiverToken.helpText": "Enter your Digital River API secret key",
   "admin/digital-river.settings.vtexAppKey.label": "VTEX App Key",
   "admin/digital-river.settings.vtexAppToken.label": "VTEX App Token",
-  "admin/digital-river.settings.vtexAppToken.helpText": "Enter a VTEX app key and token pair for this account",
+  "admin/digital-river.settings.vtexAppToken.helpText": "Enter a VTEX app key and token pair for this account. If you are configuring a marketplace-seller relationship, use a key and token that have permissions for all related accounts.",
   "admin/digital-river.settings.isLive.label": "Enable production mode",
   "admin/digital-river.settings.isLive.helpText": "Disable to use test mode, enable for production mode; make sure to use the appropriate token for the selected mode.",
   "admin/digital-river.settings.enableTaxCalculation.label": "Enable tax calculation",

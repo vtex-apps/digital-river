@@ -99,20 +99,27 @@ export async function authorize(
   })
 
   // check if order already exists in Digital River
+  logger.info({
+    message: 'DigitalRiverAuthorize-getDigitalRiverOrderRequest',
+    payload: {
+      upstreamId: content.reference,
+    },
+  })
+
   try {
-    const getOrdersResponse = await digitalRiver.getOrdersByVTEXOrderId({
+    const getOrdersResponse = await digitalRiver.getOrdersByUpstreamId({
       settings,
-      orderId: content.orderId,
+      upstreamId: content.reference,
     })
 
     if (getOrdersResponse.data?.length) {
       const [order] = getOrdersResponse.data
 
-      let status = 'undefined'
+      let status = 'Undefined'
 
-      if (order.state === 'accepted') status = 'approved'
+      if (order.state === 'accepted') status = 'Approved'
       if (order.state === 'failed' || order.state === 'blocked') {
-        status = 'denied'
+        status = 'Denied'
       }
 
       logger.info({
@@ -122,13 +129,18 @@ export async function authorize(
         status,
       })
 
+      logger.info({
+        message: `DigitalRiverAuthorize-payment${status}`,
+        orderId: content.orderId,
+      })
+
       return {
         authorizationId: '',
         code: undefined,
         message: `Existing Digital River order located, state is '${order.state}'`,
         paymentId: content.paymentId,
         tid: order.id,
-        status,
+        status: status.toLowerCase(),
         acquirer: undefined,
         paymentAppData: undefined,
       } as AuthorizationResponse
@@ -150,13 +162,23 @@ export async function authorize(
     // TODO: get Checkout ID from orderForm
     let digitalRiverCheckoutId = ''
     let orderData = null
+    const [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
+
+    logger.info({
+      message: 'DigitalRiverAuthorize-getVTEXOrderRequest',
+      payload: {
+        orderId: `${content.orderId}-01`,
+        originatingAccount,
+      },
+    })
 
     try {
-      orderData = await orders.getOrder(
-        `${content.orderId}-01`,
-        settings.vtexAppKey,
-        settings.vtexAppToken
-      )
+      orderData = await orders.getOrder({
+        orderId: `${content.orderId}-01`,
+        originatingAccount,
+        vtexAppKey: settings.vtexAppKey,
+        vtexAppToken: settings.vtexAppToken,
+      })
 
       logger.info({
         message: 'DigitalRiverAuthorize-getVTEXOrderResponse',
@@ -180,6 +202,11 @@ export async function authorize(
         message: 'DigitalRiverAuthorize-getVTEXOrderFailure',
       })
 
+      logger.info({
+        message: `DigitalRiverAuthorize-paymentDenied`,
+        orderId: content.orderId,
+      })
+
       return {
         paymentId: content.paymentId,
         tid: '',
@@ -189,6 +216,16 @@ export async function authorize(
     }
 
     if (!digitalRiverCheckoutId) {
+      logger.error({
+        message: 'DigitalRiverAuthorize-noCheckoutIdFound',
+        orderId: content.orderId,
+      })
+
+      logger.info({
+        message: `DigitalRiverAuthorize-paymentDenied`,
+        orderId: content.orderId,
+      })
+
       return {
         paymentId: content.paymentId,
         tid: '',
@@ -199,10 +236,19 @@ export async function authorize(
 
     let orderResponse = null
 
+    logger.info({
+      message: 'DigitalRiverAuthorize-createOrderRequest',
+      payload: {
+        checkoutId: digitalRiverCheckoutId,
+        upstreamId: content.reference,
+      },
+    })
+
     try {
       orderResponse = await digitalRiver.createOrder({
         settings,
         checkoutId: digitalRiverCheckoutId,
+        upstreamId: content.reference,
       })
 
       logger.info({
@@ -217,6 +263,11 @@ export async function authorize(
         message: 'DigitalRiverAuthorize-createOrderFailure',
       })
 
+      logger.info({
+        message: `DigitalRiverAuthorize-paymentDenied`,
+        orderId: content.orderId,
+      })
+
       return {
         paymentId: content.paymentId,
         tid: '',
@@ -229,8 +280,15 @@ export async function authorize(
       orderResponse.data.state === 'payment_pending' ||
       orderResponse.data.state === 'in_review'
 
+    logger.info({
+      message: `DigitalRiverAuthorize-payment${
+        statusUndefined ? 'Undefined' : 'Approved'
+      }`,
+      orderId: content.orderId,
+    })
+
     return {
-      authorizationId: '',
+      authorizationId: orderResponse.data.id,
       code: orderResponse.status.toString(),
       message: 'Successfully created Digital River order',
       paymentId: content.paymentId,
@@ -465,10 +523,16 @@ export async function authorize(
       paymentAppData: undefined,
     } as CreditCardAuthorized
   }
+  // END Credit Card processing block
 
   logger.warn({
     message: 'DigitalRiverAuthorize-paymentMethodNotSupported',
     data: content,
+  })
+
+  logger.info({
+    message: `DigitalRiverAuthorize-paymentDenied`,
+    orderId: content.orderId,
   })
 
   return {
@@ -507,6 +571,14 @@ export async function settle(
 
   let getOrderResponse = null
 
+  logger.info({
+    message: 'DigitalRiverSettle-getDigitalRiverOrderRequest',
+    paymentId,
+    payload: {
+      orderId: tid,
+    },
+  })
+
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
@@ -537,11 +609,16 @@ export async function settle(
         quantity: item.quantity,
       }
     }),
-    orderId: tid,
+    orderId: getOrderResponse.id,
   } as DRFulfillmentPayload
 
   let settleResponse = null
 
+  logger.info({
+    message: 'DigitalRiverSettle-settleRequest',
+    paymentId,
+    payload,
+  })
   try {
     settleResponse = await digitalRiver.fulfillOrCancelOrder({
       settings,
@@ -550,14 +627,14 @@ export async function settle(
 
     logger.info({
       message: 'DigitalRiverSettle-settleResponse',
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       data: settleResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       message: 'DigitalRiverSettle-fulfillmentFailure',
     })
@@ -587,7 +664,7 @@ export async function refund(
     vtex: { logger },
   } = ctx
 
-  const { tid } = ctx.request.body as any
+  const { tid, authorizationId } = ctx.request.body as any
 
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
@@ -599,15 +676,24 @@ export async function refund(
 
   let getOrderResponse = null
 
+  logger.info({
+    message: 'DigitalRiverRefund-getDigitalRiverOrderRequest',
+    paymentId,
+    payload: {
+      orderId: tid || authorizationId,
+    },
+  })
+
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: tid,
+      orderId: tid || authorizationId,
     })
 
     logger.info({
       message: 'DigitalRiverRefund-getDigitalRiverOrderResponse',
       tid,
+      authorizationId,
       paymentId,
       data: getOrderResponse,
     })
@@ -615,6 +701,7 @@ export async function refund(
     logger.error({
       error: err,
       tid,
+      authorizationId,
       paymentId,
       message: 'DigitalRiverRefund-getOrderByIdFailure',
     })
@@ -623,26 +710,32 @@ export async function refund(
   }
 
   const payload = {
-    orderId: tid,
+    orderId: getOrderResponse.id,
     currency: getOrderResponse.currency,
     amount: value,
   } as DRRefundPayload
 
   let refundResponse = null
 
+  logger.info({
+    message: 'DigitalRiverRefund-refundRequest',
+    paymentId,
+    payload,
+  })
+
   try {
     refundResponse = await digitalRiver.refundOrder({ settings, payload })
 
     logger.info({
       message: 'DigitalRiverRefund-refundResponse',
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       data: refundResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       message: 'DigitalRiverRefund-refundOrderFailure',
     })
@@ -666,7 +759,7 @@ export async function cancel(
   const {
     request: {
       body,
-      body: { transactionId, paymentId, requestId },
+      body: { authorizationId, transactionId, paymentId, requestId },
     },
     clients: { digitalRiver, apps },
     vtex: { logger },
@@ -684,15 +777,24 @@ export async function cancel(
 
   let getOrderResponse = null
 
+  logger.info({
+    message: 'DigitalRiverCancel-getDigitalRiverOrderRequest',
+    paymentId,
+    payload: {
+      orderId: tid || authorizationId,
+    },
+  })
+
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: tid,
+      orderId: tid || authorizationId,
     })
 
     logger.info({
       message: 'DigitalRiverCancel-getDigitalRiverOrderResponse',
       tid,
+      authorizationId,
       paymentId,
       data: getOrderResponse,
     })
@@ -700,6 +802,7 @@ export async function cancel(
     logger.error({
       error: err,
       tid,
+      authorizationId,
       paymentId,
       message: 'DigitalRiverCancel-getOrderByIdFailure',
     })
@@ -708,7 +811,7 @@ export async function cancel(
   }
 
   const payload = {
-    orderId: tid,
+    orderId: getOrderResponse.id,
     items: getOrderResponse.items.map((item) => {
       return {
         itemId: item.id,
@@ -719,6 +822,12 @@ export async function cancel(
 
   let cancelResponse = null
 
+  logger.info({
+    message: 'DigitalRiverCancel-cancelRequest',
+    paymentId,
+    payload,
+  })
+
   try {
     cancelResponse = await digitalRiver.fulfillOrCancelOrder({
       settings,
@@ -727,14 +836,14 @@ export async function cancel(
 
     logger.info({
       message: 'DigitalRiverCancel-cancelResponse',
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       data: cancelResponse,
     })
   } catch (err) {
     logger.error({
       error: err,
-      tid,
+      digitalRiverOrderId: getOrderResponse.id,
       paymentId,
       message: 'DigitalRiverCancel-cancelOrderFailure',
     })

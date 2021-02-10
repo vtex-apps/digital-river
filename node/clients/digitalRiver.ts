@@ -89,16 +89,22 @@ export default class DigitalRiver extends ExternalClient {
   public async createOrder({
     settings,
     checkoutId,
+    upstreamId,
   }: {
     settings: AppSettings
     checkoutId: string
+    upstreamId?: string
   }): Promise<IOResponse<DROrderResponse>> {
-    return this.http.postRaw(`/orders`, JSON.stringify({ checkoutId }), {
-      headers: {
-        Authorization: `Bearer ${settings.digitalRiverToken}`,
-        'Content-Type': `application/json`,
-      },
-    })
+    return this.http.postRaw(
+      `/orders`,
+      JSON.stringify({ checkoutId, upstreamId }),
+      {
+        headers: {
+          Authorization: `Bearer ${settings.digitalRiverToken}`,
+          'Content-Type': `application/json`,
+        },
+      }
+    )
   }
 
   // getOrderById
@@ -117,13 +123,13 @@ export default class DigitalRiver extends ExternalClient {
     })
   }
 
-  // getOrdersByVTEXOrderId
-  public async getOrdersByVTEXOrderId({
+  // getOrdersByUpstreamId
+  public async getOrdersByUpstreamId({
     settings,
-    orderId,
+    upstreamId,
   }: {
     settings: AppSettings
-    orderId: string
+    upstreamId: string
   }): Promise<DROrdersResponse> {
     return this.http.get(`/orders`, {
       headers: {
@@ -131,7 +137,7 @@ export default class DigitalRiver extends ExternalClient {
         'Content-Type': `application/json`,
       },
       params: {
-        upstreamIds: [orderId],
+        upstreamIds: [upstreamId],
       },
     })
   }

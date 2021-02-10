@@ -66,7 +66,10 @@ export async function digitalRiverCreateCheckout(
 
   let locale = 'en_US'
 
-  if (shippingCountry && shippingCountry in COUNTRIES_LANGUAGES) {
+  if (
+    orderFormData?.shippingData?.address?.country &&
+    orderFormData?.shippingData?.address?.country in COUNTRIES_LANGUAGES
+  ) {
     locale = COUNTRIES_LANGUAGES[shippingCountry]
   }
 
@@ -80,20 +83,18 @@ export async function digitalRiverCreateCheckout(
     ).deliveryIds
 
     // eslint-disable-next-line no-await-in-loop
-    const dockInfo = await logistics.getDocksById(dockId)
+    let dockInfo = await logistics.getDocksById(dockId)
 
     if (
-      !dockInfo.address?.street ||
       !dockInfo.address?.city ||
-      !dockInfo.address?.state ||
       !dockInfo.address?.postalCode ||
       !dockInfo.address?.country?.acronym
     ) {
-      logger.error({
+      logger.warn({
         message: 'DigitalRiverCreateCheckout-dockAddressMisconfiguration',
         dockInfo,
       })
-      throw new Error('dock-address-misconfiguration')
+      dockInfo = ''
     }
 
     docks.push(dockInfo)
@@ -104,10 +105,12 @@ export async function digitalRiverCreateCheckout(
 
     for (const priceTag of item.priceTags) {
       if (priceTag.name.toUpperCase().includes('DISCOUNT@')) {
-        if (priceTag.isPercentual) {
-          discountPrice += Math.abs(priceTag.value * item.price)
-        } else {
-          discountPrice += Math.abs(priceTag.value as number)
+        if (!priceTag.name.toUpperCase().includes('DISCOUNT@SHIPPING')) {
+          if (priceTag.isPercentual) {
+            discountPrice += Math.abs(priceTag.value * item.price)
+          } else {
+            discountPrice += Math.abs(priceTag.value as number)
+          }
         }
       }
     }
@@ -124,16 +127,18 @@ export async function digitalRiverCreateCheckout(
             quantity: item.quantity,
           }
         : undefined,
-      shipFrom: {
-        address: {
-          line1: dock.address.street,
-          line2: dock.address.complement || '',
-          city: dock.address.city,
-          postalCode: dock.address.postalCode,
-          state: dock.address.state,
-          country: convertIso3To2(dock.address.country.acronym),
+      ...(!!dock && {
+        shipFrom: {
+          address: {
+            line1: dock.address.street || 'Unknown',
+            line2: dock.address.complement || '',
+            city: dock.address.city,
+            postalCode: dock.address.postalCode,
+            state: dock.address.state || '',
+            country: convertIso3To2(dock.address.country.acronym),
+          },
         },
-      },
+      }),
     }
 
     items.push(newItem)
@@ -241,6 +246,14 @@ export async function digitalRiverUpdateCheckout(
   })
 
   let updateCheckoutResponse = null
+
+  logger.info({
+    message: 'DigitalRiverUpdateCheckout-updateCheckoutRequest',
+    payload: {
+      checkoutId,
+      sourceId,
+    },
+  })
 
   try {
     updateCheckoutResponse = await digitalRiver.updateCheckoutWithSource({
