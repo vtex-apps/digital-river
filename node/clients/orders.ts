@@ -28,11 +28,8 @@ export default class OrdersClient extends JanusClient {
   }): Promise<any> {
     return this.http.get(`/api/oms/pvt/orders/${orderId}`, {
       headers: {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        headers: {
-          'X-VTEX-API-AppKey': vtexAppKey,
-          'X-VTEX-API-AppToken': vtexAppToken,
-        },
+        'X-VTEX-API-AppKey': vtexAppKey,
+        'X-VTEX-API-AppToken': vtexAppToken,
       },
       params: {
         ...(originatingAccount && { an: originatingAccount }),
