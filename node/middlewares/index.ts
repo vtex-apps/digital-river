@@ -135,7 +135,7 @@ export async function authorize(
       return {
         authorizationId: '',
         code: undefined,
-        message: `Existing Digital River order located, state is '${order.state}'`,
+        message: `Existing Digital River order located using Upstream ID ${content.reference}, state is '${order.state}'`,
         paymentId: content.paymentId,
         tid: order.id,
         status: status.toLowerCase(),
@@ -203,7 +203,7 @@ export async function authorize(
       return {
         paymentId: content.paymentId,
         tid: '',
-        message: `Get VTEX order error: ${err}`,
+        message: `Get VTEX order ${content.orderId} error: ${err}`,
         status: 'denied',
       } as FailedAuthorization
     }
@@ -222,7 +222,7 @@ export async function authorize(
       return {
         paymentId: content.paymentId,
         tid: '',
-        message: `No Digital River checkout ID found in VTEX order data`,
+        message: `No Digital River Checkout ID found in VTEX order data`,
         status: 'denied',
       } as FailedAuthorization
     }
@@ -264,7 +264,7 @@ export async function authorize(
       return {
         paymentId: content.paymentId,
         tid: '',
-        message: `Update checkout error: ${err}`,
+        message: `Update checkout error for Checkout ID ${digitalRiverCheckoutId}: ${err}`,
         status: 'denied',
       } as FailedAuthorization
     }
@@ -304,7 +304,7 @@ export async function authorize(
       return {
         paymentId: content.paymentId,
         tid: '',
-        message: `Order creation error: ${err}`,
+        message: `Order creation error for Checkout ID ${digitalRiverCheckoutId}: ${err}`,
         status: 'denied',
       } as FailedAuthorization
     }
@@ -323,7 +323,7 @@ export async function authorize(
     return {
       authorizationId: orderResponse.data.id,
       code: orderResponse.status.toString(),
-      message: 'Successfully created Digital River order',
+      message: `Successfully created Digital River order using Checkout ID ${digitalRiverCheckoutId}. See TID field for Digital River Order ID. Digital River order state is ${orderResponse.data.state}.`,
       paymentId: content.paymentId,
       tid: orderResponse.data.id,
       status: statusUndefined ? 'undefined' : 'approved',
@@ -632,7 +632,10 @@ export async function settle(
       message: 'DigitalRiverSettle-getOrderByIdFailure',
     })
 
-    throw new ResolverError({ message: 'Get order by ID error', error: err })
+    throw new ResolverError({
+      message: `Get order by ID error using Digital River Order ID ${tid}`,
+      error: err,
+    })
   }
 
   const payload = {
@@ -672,13 +675,16 @@ export async function settle(
       message: 'DigitalRiverSettle-fulfillmentFailure',
     })
 
-    throw new ResolverError({ message: 'Fulfillment error', error: err })
+    throw new ResolverError({
+      message: `Settlement error for Digital River Order ID ${getOrderResponse.id}`,
+      error: err,
+    })
   }
 
   return {
     settleId: settleResponse.id,
     code: undefined,
-    message: 'Successfully settled',
+    message: `Successfully settled Digital River Order ID ${getOrderResponse.id}`,
     paymentId,
     value,
     requestId,
@@ -739,7 +745,12 @@ export async function refund(
       message: 'DigitalRiverRefund-getOrderByIdFailure',
     })
 
-    throw new ResolverError({ message: 'Get order by ID error', error: err })
+    throw new ResolverError({
+      message: `Get order by ID error using Digital River Order ID ${
+        tid || authorizationId
+      }`,
+      error: err,
+    })
   }
 
   const payload = {
@@ -773,13 +784,16 @@ export async function refund(
       message: 'DigitalRiverRefund-refundOrderFailure',
     })
 
-    throw new ResolverError({ message: 'Refund failure', error: err })
+    throw new ResolverError({
+      message: `Refund failure for Digital River Order ID ${getOrderResponse.id}`,
+      error: err,
+    })
   }
 
   return {
     refundId: refundResponse.id,
     code: undefined,
-    message: 'Successfully refunded',
+    message: `Successfully refunded Digital River Order ID ${getOrderResponse.id}`,
     paymentId,
     requestId,
     value,
@@ -840,7 +854,12 @@ export async function cancel(
       message: 'DigitalRiverCancel-getOrderByIdFailure',
     })
 
-    throw new ResolverError({ message: 'Get order by ID error', error: err })
+    throw new ResolverError({
+      message: `Get order by ID error using Digital River Order ID ${
+        tid || authorizationId
+      }`,
+      error: err,
+    })
   }
 
   const payload = {
@@ -881,13 +900,16 @@ export async function cancel(
       message: 'DigitalRiverCancel-cancelOrderFailure',
     })
 
-    throw new ResolverError({ message: 'Cancel order error', error: err })
+    throw new ResolverError({
+      message: `Cancel order error for Digital River Order ID ${getOrderResponse.id}`,
+      error: err,
+    })
   }
 
   return {
     cancellationId: cancelResponse.id,
     code: undefined,
-    message: 'Successfully cancelled',
+    message: `Successfully cancelled Digital River Order ID `,
     transactionId,
     paymentId,
     requestId,
