@@ -227,10 +227,10 @@ export async function authorize(
       } as FailedAuthorization
     }
 
-    let orderResponse = null
+    let updateCheckoutResponse = null
 
     logger.info({
-      message: 'DigitalRiverAuthorize-createOrderRequest',
+      message: 'DigitalRiverAuthorize-updateCheckoutRequest',
       payload: {
         checkoutId: digitalRiverCheckoutId,
         upstreamId: content.reference,
@@ -238,10 +238,50 @@ export async function authorize(
     })
 
     try {
-      orderResponse = await digitalRiver.createOrder({
+      updateCheckoutResponse = await digitalRiver.updateCheckoutWithUpstreamId({
         settings,
         checkoutId: digitalRiverCheckoutId,
         upstreamId: content.reference,
+      })
+
+      logger.info({
+        message: 'DigitalRiverAuthorize-updateCheckoutResponse',
+        orderId: content.orderId,
+        data: updateCheckoutResponse,
+      })
+    } catch (err) {
+      logger.error({
+        error: err,
+        orderId: content.orderId,
+        message: 'DigitalRiverAuthorize-updateCheckoutFailure',
+      })
+
+      logger.info({
+        message: `DigitalRiverAuthorize-paymentDenied`,
+        orderId: content.orderId,
+      })
+
+      return {
+        paymentId: content.paymentId,
+        tid: '',
+        message: `Update checkout error: ${err}`,
+        status: 'denied',
+      } as FailedAuthorization
+    }
+
+    let orderResponse = null
+
+    logger.info({
+      message: 'DigitalRiverAuthorize-createOrderRequest',
+      payload: {
+        checkoutId: digitalRiverCheckoutId,
+      },
+    })
+
+    try {
+      orderResponse = await digitalRiver.createOrder({
+        settings,
+        checkoutId: digitalRiverCheckoutId,
       })
 
       logger.info({

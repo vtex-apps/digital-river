@@ -89,22 +89,16 @@ export default class DigitalRiver extends ExternalClient {
   public async createOrder({
     settings,
     checkoutId,
-    upstreamId,
   }: {
     settings: AppSettings
     checkoutId: string
-    upstreamId?: string
   }): Promise<IOResponse<DROrderResponse>> {
-    return this.http.postRaw(
-      `/orders`,
-      JSON.stringify({ checkoutId, upstreamId }),
-      {
-        headers: {
-          Authorization: `Bearer ${settings.digitalRiverToken}`,
-          'Content-Type': `application/json`,
-        },
-      }
-    )
+    return this.http.postRaw(`/orders`, JSON.stringify({ checkoutId }), {
+      headers: {
+        Authorization: `Bearer ${settings.digitalRiverToken}`,
+        'Content-Type': `application/json`,
+      },
+    })
   }
 
   // getOrderById
