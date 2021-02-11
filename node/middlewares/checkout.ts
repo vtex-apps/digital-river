@@ -2,7 +2,7 @@ import { AuthenticationError, ResolverError, UserInputError } from '@vtex/api'
 import { json } from 'co-body'
 import convertIso3To2 from 'country-iso-3-to-2'
 
-import { applicationId, COUNTRIES_LANGUAGES } from '../constants'
+import { applicationId } from '../constants'
 
 interface CreateCheckoutRequest {
   orderFormId: string
@@ -64,14 +64,16 @@ export async function digitalRiverCreateCheckout(
     ? convertIso3To2(orderFormData?.shippingData?.address?.country)
     : ''
 
-  let locale = 'en_US'
+  // let locale = 'en_US'
 
-  if (
-    orderFormData?.shippingData?.address?.country &&
-    orderFormData?.shippingData?.address?.country in COUNTRIES_LANGUAGES
-  ) {
-    locale = COUNTRIES_LANGUAGES[shippingCountry]
-  }
+  // if (
+  //   orderFormData?.shippingData?.address?.country &&
+  //   orderFormData?.shippingData?.address?.country in COUNTRIES_LANGUAGES
+  // ) {
+  //   locale = COUNTRIES_LANGUAGES[shippingCountry]
+  // }
+
+  const { locale = 'en_US' } = orderFormData?.clientPreferencesData
 
   const items = []
   // const docks = []
@@ -154,6 +156,7 @@ export async function digitalRiverCreateCheckout(
     currency: orderFormData?.storePreferencesData?.currencyCode ?? 'USD',
     taxInclusive: true,
     email: orderFormData.clientProfileData?.email ?? '',
+    locale: locale.replace('-', '_'),
     shipFrom: {
       address: {
         line1: orderFormData.shippingData?.address?.street || 'Unknown',
@@ -186,7 +189,6 @@ export async function digitalRiverCreateCheckout(
       description: '',
       serviceLevel: '',
     },
-    locale,
   }
 
   logger.info({

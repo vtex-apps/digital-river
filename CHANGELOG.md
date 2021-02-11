@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.8] - 2021-02-11
+
+### Changed
+
+- Use locale from orderForm when creating Digital River checkout
+
 ## [0.0.7] - 2021-02-11
 
 ### Fixed
