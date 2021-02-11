@@ -89,27 +89,14 @@ export default new Service<Clients, RecorderState, ParamsContext>({
       authorizations: {
         POST: authorize,
       },
-      authorizationsACCT: {
-        POST: authorize,
-      },
       cancellations: {
-        POST: cancel,
-      },
-      cancellationsACCT: {
         POST: cancel,
       },
       settlements: {
         POST: settle,
       },
-      settlementsACCT: {
-        POST: settle,
-      },
       refunds: { POST: refund },
-      refundsACCT: { POST: refund },
       paymentMethods: {
-        GET: availablePaymentMethods,
-      },
-      paymentMethodsACCT: {
         GET: availablePaymentMethods,
       },
       inbound: { POST: inbound },

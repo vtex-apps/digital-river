@@ -11,40 +11,20 @@
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payment-methods",
       "public": true
     },
-    "paymentMethodsACCT": {
-      "path": "/_v/api/connectors/digital-river/payment-methods",
-      "public": true
-    },
     "authorizations": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments",
-      "public": true
-    },
-    "authorizationsACCT": {
-      "path": "/_v/api/connectors/digital-river/payments",
       "public": true
     },
     "cancellations": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments/:paymentId/cancellations",
       "public": true
     },
-    "cancellationsACCT": {
-      "path": "/_v/api/connectors/digital-river/payments/:paymentId/cancellations",
-      "public": true
-    },
     "settlements": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments/:paymentId/settlements",
       "public": true
     },
-    "settlementsACCT": {
-      "path": "/_v/api/connectors/digital-river/payments/:paymentId/settlements",
-      "public": true
-    },
     "refunds": {
       "path": "/_v/api/connectors/vtexus.connector-digital-river/v0/payments/:paymentId/refunds",
-      "public": true
-    },
-    "refundsACCT": {
-      "path": "/_v/api/connectors/digital-river/payments/:paymentId/refunds",
       "public": true
     },
     "inbound": {

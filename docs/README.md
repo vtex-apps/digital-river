@@ -14,6 +14,8 @@ This app integrates Digital River with VTEX checkout, allowing shoppers to inter
 
 > ⚠️ _This app is under development. For this initial version, orders are sent to Digital River as tax inclusive. Future versions of this app will support integration of Digital River as a tax calculation provider._
 
+> ⚠️ _You must have a Digital River account, and all SKUs must be registered with Digital River. If a shopper attempts to check out with an unregistered SKU, the Digital River 'Drop-In' component will fail to load. Future versions of this app will include a catalog sync feature to automatically register SKUs with Digital River, but for now they must be registered manually using [Digital River's API](https://www.digitalriver.com/docs/digital-river-api-reference/#operation/createSkus)._
+
 ## Configuration
 
 1. Install this app in the desired account using the CLI command `vtex install vtexus.connector-digital-river`. If you have multiple accounts configured in a marketplace-seller relationship, install the app and repeat the following steps in each of the related accounts.
