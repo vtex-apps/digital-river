@@ -24,6 +24,7 @@ import type {
   RefundResponse,
   SettlementRequest,
   SettlementResponse,
+  UndefinedAuthorization,
 } from '@vtex/payment-provider-sdk'
 // import { isTokenizedCard } from '@vtex/payment-provider-sdk'
 import { ResolverError } from '@vtex/api'
@@ -329,7 +330,8 @@ export async function authorize(
       status: statusUndefined ? 'undefined' : 'approved',
       acquirer: undefined,
       paymentAppData: undefined,
-    } as ApprovedAuthorization
+      delayToCancel: 60 * 60 * 24 * 7, // 7 days
+    } as ApprovedAuthorization | UndefinedAuthorization
   }
 
   // NOTE: Credit card processing is not supported yet! The below code is not finalized.

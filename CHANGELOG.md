@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.6] - 2021-02-11
+
+### Changed
+
+- Set same address for Digital River `shipFrom` and `shipTo`
+
+## [0.0.5] - 2021-02-11
+
+### Changed
+
+- Added `delayToCancel` attribute to payment authorization response
+- Updated docs
+
 ## [0.0.4] - 2021-02-11
 
 ### Changed

@@ -33,7 +33,11 @@ const digitalRiverPaymentGroupButtonID =
 const digitalRiverPublicKey = 'pk_test_1234567890' // NOTE! Enter your Digital River public API key here
 
 function getCountryCode(country) {
-  return fetch(`/_v/api/digital-river/checkout/country-code/${country}`)
+  return fetch(
+    `${
+      __RUNTIME__.rootPath || ``
+    }/_v/api/digital-river/checkout/country-code/${country}`
+  )
     .then((response) => {
       return response.json()
     })
@@ -61,7 +65,9 @@ function updateOrderForm(method, checkoutId) {
   const orderFormID = vtexjs.checkout.orderFormId
 
   $.ajax({
-    url: `${window.location.origin}/api/checkout/pub/orderForm/${orderFormID}/customData/digital-river/checkoutId`,
+    url: `${window.location.origin}${
+      __RUNTIME__.rootPath || ``
+    }/api/checkout/pub/orderForm/${orderFormID}/customData/digital-river/checkoutId`,
     type: method,
     data: { value: checkoutId },
     success() {
@@ -136,10 +142,13 @@ async function initDigitalRiver() {
       return
     }
 
-    fetch('/_v/api/digital-river/checkout/create', {
-      method: 'POST',
-      body: JSON.stringify({ orderFormId: orderForm.orderFormId }),
-    })
+    fetch(
+      `${__RUNTIME__.rootPath || ``}/_v/api/digital-river/checkout/create`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ orderFormId: orderForm.orderFormId }),
+      }
+    )
       .then((response) => {
         return response.json()
       })
@@ -200,10 +209,15 @@ async function initDigitalRiver() {
             },
           },
           onSuccess(data) {
-            fetch('/_v/api/digital-river/checkout/update', {
-              method: 'POST',
-              body: JSON.stringify({ checkoutId, sourceId: data.source.id }),
-            })
+            fetch(
+              `${
+                __RUNTIME__.rootPath || ``
+              }/_v/api/digital-river/checkout/update`,
+              {
+                method: 'POST',
+                body: JSON.stringify({ checkoutId, sourceId: data.source.id }),
+              }
+            )
               .then((rawResponse) => {
                 return rawResponse.json()
               })
@@ -266,7 +280,7 @@ $(window).on('hashchange', function (ev) {
 7. Click `DigitalRiverV2` from the **Others** list.
 8. Modify the `Affiliation name` if desired and then click `Save`. Leave `Application Key` and `Application Token` blank.
 9. Click the `Payment Conditions` tab and click the green plus sign to add a new payment condition.
-10. Click `DigitalRiverV2` from the **Other** list.
+10. Click `DigitalRiver` from the **Other** list.
 11. In the `Process with affiliation` dropdown, choose the name of the affiliation that you created in step 8. Set the status to `Active` and click `Save`. Note that this will activate the payment method in checkout!
 12. After successfully testing the payment method in test mode, return to the Digital River app settings page from step 2. Replace your test `Digital River token` with a production token and turn on the `Enable Production mode` toggle. Save the settings and your checkout page will be all set to start accepting production orders.
 
