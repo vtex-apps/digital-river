@@ -29,6 +29,8 @@ import type {
 // import { isTokenizedCard } from '@vtex/payment-provider-sdk'
 import { ResolverError } from '@vtex/api'
 
+import { MOTOROLA_ACCOUNTS } from '../constants'
+
 // import { applicationId, COUNTRIES_LANGUAGES } from '../constants'
 
 type PaymentProviderContext<
@@ -156,7 +158,11 @@ export async function authorize(
   if (content.paymentMethod === 'DigitalRiver') {
     let digitalRiverCheckoutId = ''
     let orderData = null
-    const [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
+    let [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
+
+    if (originatingAccount in MOTOROLA_ACCOUNTS) {
+      originatingAccount = MOTOROLA_ACCOUNTS[originatingAccount]
+    }
 
     logger.info({
       message: 'DigitalRiverAuthorize-getVTEXOrderRequest',
