@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.2] - 2021-02-11
+
+### Changed
+
+- Removed debug code related to Affirm payment connector
+- Updated docs
+
 ## [0.0.1] - 2021-02-11
 
 ### Added

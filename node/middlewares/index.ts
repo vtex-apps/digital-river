@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders } from 'http2'
 
-import convertIso3To2 from 'country-iso-3-to-2'
+// import convertIso3To2 from 'country-iso-3-to-2'
 import type {
   APIContext,
   APIResponse,
@@ -8,8 +8,8 @@ import type {
   AvailablePaymentsResponse,
   AuthorizationRequest,
   AuthorizationResponse,
-  CardAuthorization,
-  CreditCardAuthorized,
+  // CardAuthorization,
+  // CreditCardAuthorized,
   CancellationRequest,
   CancellationResponse,
   FailedAuthorization,
@@ -25,10 +25,10 @@ import type {
   SettlementRequest,
   SettlementResponse,
 } from '@vtex/payment-provider-sdk'
-import { isTokenizedCard } from '@vtex/payment-provider-sdk'
+// import { isTokenizedCard } from '@vtex/payment-provider-sdk'
 import { ResolverError } from '@vtex/api'
 
-import { applicationId, COUNTRIES_LANGUAGES } from '../constants'
+// import { applicationId, COUNTRIES_LANGUAGES } from '../constants'
 
 type PaymentProviderContext<
   RequestBody = unknown,
@@ -40,7 +40,7 @@ type PaymentProviderContext<
 interface DigitalRiverAuthorization extends PaymentRequest {
   reference: string
   orderId: string
-  paymentMethod: PaymentMethod | 'DigitalRiver' | 'Affirm'
+  paymentMethod: PaymentMethod | 'DigitalRiver'
   paymentMethodCustomCode: Maybe<string>
   merchantName: string
   value: number
@@ -56,9 +56,9 @@ interface DigitalRiverAuthorization extends PaymentRequest {
   recipients: Maybe<Recipient[]>
 }
 
-declare const isCardAuthorization: (
-  authorization: AuthorizationRequest | DigitalRiverAuthorization
-) => authorization is CardAuthorization
+// declare const isCardAuthorization: (
+//   authorization: AuthorizationRequest | DigitalRiverAuthorization
+// ) => authorization is CardAuthorization
 
 const getAppId = (): string => {
   return process.env.VTEX_APP_ID ?? ''
@@ -67,7 +67,6 @@ const getAppId = (): string => {
 export function availablePaymentMethods(): AvailablePaymentsResponse {
   return ({
     paymentMethods: [
-      'Affirm', // for testing
       // 'American Express',
       'DigitalRiver',
       // 'Diners',
@@ -75,7 +74,6 @@ export function availablePaymentMethods(): AvailablePaymentsResponse {
       // 'JCB',
       // 'Maestro',
       // 'Mastercard',
-      'Promissories',
       // 'Visa',
     ],
   } as unknown) as AvailablePaymentsResponse
@@ -153,13 +151,8 @@ export async function authorize(
     })
   }
 
-  // Check if payment method is Digital River (or Affirm or Promissories for testing)
-  if (
-    content.paymentMethod === 'DigitalRiver' ||
-    content.paymentMethod === 'Affirm' ||
-    content.paymentMethod === 'Promissories'
-  ) {
-    // TODO: get Checkout ID from orderForm
+  // Check if payment method is Digital River
+  if (content.paymentMethod === 'DigitalRiver') {
     let digitalRiverCheckoutId = ''
     let orderData = null
     const [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
@@ -300,229 +293,229 @@ export async function authorize(
   }
 
   // NOTE: Credit card processing is not supported yet! The below code is not finalized.
-  if (isCardAuthorization(content)) {
-    let checkoutId = ''
+  // if (isCardAuthorization(content)) {
+  //   let checkoutId = ''
 
-    if (!settings.enableTaxCalculation) {
-      const billingCountry = content.miniCart.billingAddress?.country
-        ? convertIso3To2(content.miniCart.billingAddress?.country)
-        : ''
+  //   if (!settings.enableTaxCalculation) {
+  //     const billingCountry = content.miniCart.billingAddress?.country
+  //       ? convertIso3To2(content.miniCart.billingAddress?.country)
+  //       : ''
 
-      const shippingCountry = content.miniCart.shippingAddress?.country
-        ? convertIso3To2(content.miniCart.shippingAddress?.country)
-        : ''
+  //     const shippingCountry = content.miniCart.shippingAddress?.country
+  //       ? convertIso3To2(content.miniCart.shippingAddress?.country)
+  //       : ''
 
-      let locale = 'en_US'
+  //     let locale = 'en_US'
 
-      if (
-        content.miniCart.shippingAddress?.country &&
-        content.miniCart.shippingAddress.country in COUNTRIES_LANGUAGES
-      ) {
-        locale = COUNTRIES_LANGUAGES[content.miniCart.shippingAddress.country]
-      }
+  //     if (
+  //       content.miniCart.shippingAddress?.country &&
+  //       content.miniCart.shippingAddress.country in COUNTRIES_LANGUAGES
+  //     ) {
+  //       locale = COUNTRIES_LANGUAGES[content.miniCart.shippingAddress.country]
+  //     }
 
-      const items = []
+  //     const items = []
 
-      if (content.miniCart.items && content.miniCart.items.length > 0) {
-        for (const item of content.miniCart.items) {
-          const newItem: CheckoutItem = {
-            skuId: item.id ?? '',
-            quantity: item.quantity ?? 0,
-            price: item.price ?? 0,
-            ...(item.discount &&
-              item.discount > 0 &&
-              item.quantity && {
-                discount: {
-                  amountOff: Math.abs(item.discount / item.quantity),
-                  quantity: item.quantity,
-                },
-              }),
-          }
+  //     if (content.miniCart.items && content.miniCart.items.length > 0) {
+  //       for (const item of content.miniCart.items) {
+  //         const newItem: CheckoutItem = {
+  //           skuId: item.id ?? '',
+  //           quantity: item.quantity ?? 0,
+  //           price: item.price ?? 0,
+  //           ...(item.discount &&
+  //             item.discount > 0 &&
+  //             item.quantity && {
+  //               discount: {
+  //                 amountOff: Math.abs(item.discount / item.quantity),
+  //                 quantity: item.quantity,
+  //               },
+  //             }),
+  //         }
 
-          items.push(newItem)
-        }
-      }
+  //         items.push(newItem)
+  //       }
+  //     }
 
-      // TODO: fix shipFrom address
-      const checkoutPayload: DRCheckoutPayload = {
-        upstreamId: content.orderId,
-        applicationId,
-        currency: content.currency,
-        taxInclusive: content.miniCart.taxValue === 0,
-        browserIp: content.ipAddress ?? '',
-        email: content.miniCart.buyer.email ?? '',
-        shipFrom: {
-          address: {
-            line1: content.miniCart.billingAddress?.street ?? '',
-            line2: content.miniCart.billingAddress?.complement ?? '',
-            city: content.miniCart.billingAddress?.city ?? '',
-            postalCode: content.miniCart.billingAddress?.postalCode ?? '',
-            state: content.miniCart.billingAddress?.state ?? '',
-            country: settings.isLive ? billingCountry : shippingCountry,
-          },
-        },
-        shipTo: {
-          name: `${content.miniCart.buyer.firstName} ${content.miniCart.buyer.lastName}`,
-          phone: content.miniCart.buyer.phone ?? '',
-          address: {
-            line1: content.miniCart.shippingAddress?.street ?? '',
-            line2: content.miniCart.shippingAddress?.complement ?? '',
-            city: content.miniCart.shippingAddress?.city ?? '',
-            state: content.miniCart.shippingAddress?.state ?? '',
-            postalCode: content.miniCart.shippingAddress?.postalCode ?? '',
-            country: shippingCountry,
-          },
-        },
-        items,
-        shippingChoice: {
-          amount: content.miniCart.shippingValue ?? 0,
-          description: '',
-          serviceLevel: '',
-        },
-        metadata: {
-          paymentId: content.paymentId,
-        },
-        locale,
-      }
+  //     // TODO: fix shipFrom address
+  //     const checkoutPayload: DRCheckoutPayload = {
+  //       upstreamId: content.orderId,
+  //       applicationId,
+  //       currency: content.currency,
+  //       taxInclusive: content.miniCart.taxValue === 0,
+  //       browserIp: content.ipAddress ?? '',
+  //       email: content.miniCart.buyer.email ?? '',
+  //       shipFrom: {
+  //         address: {
+  //           line1: content.miniCart.billingAddress?.street ?? '',
+  //           line2: content.miniCart.billingAddress?.complement ?? '',
+  //           city: content.miniCart.billingAddress?.city ?? '',
+  //           postalCode: content.miniCart.billingAddress?.postalCode ?? '',
+  //           state: content.miniCart.billingAddress?.state ?? '',
+  //           country: settings.isLive ? billingCountry : shippingCountry,
+  //         },
+  //       },
+  //       shipTo: {
+  //         name: `${content.miniCart.buyer.firstName} ${content.miniCart.buyer.lastName}`,
+  //         phone: content.miniCart.buyer.phone ?? '',
+  //         address: {
+  //           line1: content.miniCart.shippingAddress?.street ?? '',
+  //           line2: content.miniCart.shippingAddress?.complement ?? '',
+  //           city: content.miniCart.shippingAddress?.city ?? '',
+  //           state: content.miniCart.shippingAddress?.state ?? '',
+  //           postalCode: content.miniCart.shippingAddress?.postalCode ?? '',
+  //           country: shippingCountry,
+  //         },
+  //       },
+  //       items,
+  //       shippingChoice: {
+  //         amount: content.miniCart.shippingValue ?? 0,
+  //         description: '',
+  //         serviceLevel: '',
+  //       },
+  //       metadata: {
+  //         paymentId: content.paymentId,
+  //       },
+  //       locale,
+  //     }
 
-      let checkoutResponse = null
+  //     let checkoutResponse = null
 
-      try {
-        checkoutResponse = await digitalRiver.createCheckout({
-          settings,
-          checkoutPayload,
-        })
-      } catch (err) {
-        logger.error({
-          error: err,
-          orderId: content.orderId,
-          message: 'DigitalRiverAuthorize-createCheckoutFailure',
-        })
+  //     try {
+  //       checkoutResponse = await digitalRiver.createCheckout({
+  //         settings,
+  //         checkoutPayload,
+  //       })
+  //     } catch (err) {
+  //       logger.error({
+  //         error: err,
+  //         orderId: content.orderId,
+  //         message: 'DigitalRiverAuthorize-createCheckoutFailure',
+  //       })
 
-        throw new ResolverError({
-          message: 'Checkout creation failed',
-          error: err,
-        })
-      }
+  //       throw new ResolverError({
+  //         message: 'Checkout creation failed',
+  //         error: err,
+  //       })
+  //     }
 
-      const sourcePayload = {
-        type: 'creditCard',
-        paymentSessionId: checkoutResponse.paymentSessionId,
-        reusable: false,
-        owner: {
-          firstName: content.miniCart.buyer.firstName,
-          lastName: content.miniCart.buyer.lastName,
-          email: content.miniCart.buyer.email ?? '',
-          address: {
-            line1: content.miniCart.billingAddress?.street ?? '',
-            line2: content.miniCart.billingAddress?.complement ?? '',
-            city: content.miniCart.billingAddress?.city ?? '',
-            state: content.miniCart.billingAddress?.state ?? '',
-            postalCode: content.miniCart.billingAddress?.postalCode ?? '',
-            country: billingCountry,
-          },
-        },
-        creditCard: {
-          brand: content.paymentMethod,
-          number: !isTokenizedCard(content.card) ? content.card.number : '',
-          expirationMonth: parseInt(content.card.expiration.month, 10),
-          expirationYear: parseInt(content.card.expiration.year, 10),
-          cvv: !isTokenizedCard(content.card) ? content.card.csc : '',
-        },
-      }
+  //     const sourcePayload = {
+  //       type: 'creditCard',
+  //       paymentSessionId: checkoutResponse.paymentSessionId,
+  //       reusable: false,
+  //       owner: {
+  //         firstName: content.miniCart.buyer.firstName,
+  //         lastName: content.miniCart.buyer.lastName,
+  //         email: content.miniCart.buyer.email ?? '',
+  //         address: {
+  //           line1: content.miniCart.billingAddress?.street ?? '',
+  //           line2: content.miniCart.billingAddress?.complement ?? '',
+  //           city: content.miniCart.billingAddress?.city ?? '',
+  //           state: content.miniCart.billingAddress?.state ?? '',
+  //           postalCode: content.miniCart.billingAddress?.postalCode ?? '',
+  //           country: billingCountry,
+  //         },
+  //       },
+  //       creditCard: {
+  //         brand: content.paymentMethod,
+  //         number: !isTokenizedCard(content.card) ? content.card.number : '',
+  //         expirationMonth: parseInt(content.card.expiration.month, 10),
+  //         expirationYear: parseInt(content.card.expiration.year, 10),
+  //         cvv: !isTokenizedCard(content.card) ? content.card.csc : '',
+  //       },
+  //     }
 
-      let sourceResponse = null
+  //     let sourceResponse = null
 
-      try {
-        sourceResponse = await digitalRiver.createSource({
-          settings,
-          payload: sourcePayload,
-        })
-      } catch (err) {
-        logger.error({
-          error: err,
-          orderId: content.orderId,
-          message: 'DigitalRiverAuthorize-createSourceFailure',
-        })
+  //     try {
+  //       sourceResponse = await digitalRiver.createSource({
+  //         settings,
+  //         payload: sourcePayload,
+  //       })
+  //     } catch (err) {
+  //       logger.error({
+  //         error: err,
+  //         orderId: content.orderId,
+  //         message: 'DigitalRiverAuthorize-createSourceFailure',
+  //       })
 
-        throw new ResolverError({
-          message: 'Source creation error',
-          error: err,
-        })
-      }
+  //       throw new ResolverError({
+  //         message: 'Source creation error',
+  //         error: err,
+  //       })
+  //     }
 
-      if (sourceResponse.state === 'failed') {
-        // return payment status 'denied' if source creation failed
-        return {
-          authorizationId: '',
-          code: '200',
-          message: 'Source creation failed',
-          paymentId: content.paymentId,
-          tid: checkoutResponse.id,
-          status: 'approved',
-          acquirer: 'Digital River',
-          paymentAppData: undefined,
-        } as CreditCardAuthorized
-      }
+  //     if (sourceResponse.state === 'failed') {
+  //       // return payment status 'denied' if source creation failed
+  //       return {
+  //         authorizationId: '',
+  //         code: '200',
+  //         message: 'Source creation failed',
+  //         paymentId: content.paymentId,
+  //         tid: checkoutResponse.id,
+  //         status: 'approved',
+  //         acquirer: 'Digital River',
+  //         paymentAppData: undefined,
+  //       } as CreditCardAuthorized
+  //     }
 
-      let checkoutUpdateResponse = null
+  //     let checkoutUpdateResponse = null
 
-      try {
-        checkoutUpdateResponse = await digitalRiver.updateCheckoutWithSource({
-          settings,
-          checkoutId: checkoutResponse.id,
-          sourceId: sourceResponse.id,
-        })
-      } catch (err) {
-        logger.error({
-          error: err,
-          orderId: content.orderId,
-          message: 'DigitalRiverAuthorize-updateCheckoutFailure',
-        })
+  //     try {
+  //       checkoutUpdateResponse = await digitalRiver.updateCheckoutWithSource({
+  //         settings,
+  //         checkoutId: checkoutResponse.id,
+  //         sourceId: sourceResponse.id,
+  //       })
+  //     } catch (err) {
+  //       logger.error({
+  //         error: err,
+  //         orderId: content.orderId,
+  //         message: 'DigitalRiverAuthorize-updateCheckoutFailure',
+  //       })
 
-        throw new ResolverError({
-          message: 'Checkout update error',
-          error: err,
-        })
-      }
+  //       throw new ResolverError({
+  //         message: 'Checkout update error',
+  //         error: err,
+  //       })
+  //     }
 
-      checkoutId = checkoutUpdateResponse.id
-    } else {
-      // enableTaxCalculation is true so checkoutId should be available from the orderForm
-    }
+  //     checkoutId = checkoutUpdateResponse.id
+  //   } else {
+  //     // enableTaxCalculation is true so checkoutId should be available from the orderForm
+  //   }
 
-    let orderResponse = null
+  //   let orderResponse = null
 
-    try {
-      orderResponse = await digitalRiver.createOrder({
-        settings,
-        checkoutId,
-      })
-    } catch (err) {
-      logger.error({
-        error: err,
-        orderId: content.orderId,
-        message: 'DigitalRiverAuthorize-createOrderFailure',
-      })
+  //   try {
+  //     orderResponse = await digitalRiver.createOrder({
+  //       settings,
+  //       checkoutId,
+  //     })
+  //   } catch (err) {
+  //     logger.error({
+  //       error: err,
+  //       orderId: content.orderId,
+  //       message: 'DigitalRiverAuthorize-createOrderFailure',
+  //     })
 
-      throw new ResolverError({ message: 'Order creation error', error: err })
-    }
+  //     throw new ResolverError({ message: 'Order creation error', error: err })
+  //   }
 
-    const statusUndefined =
-      orderResponse.data.state === 'payment_pending' ||
-      orderResponse.data.state === 'in_review'
+  //   const statusUndefined =
+  //     orderResponse.data.state === 'payment_pending' ||
+  //     orderResponse.data.state === 'in_review'
 
-    return {
-      authorizationId: '',
-      code: orderResponse.status.toString(),
-      message: 'Successfully created Digital River order',
-      paymentId: content.paymentId,
-      tid: orderResponse.data.id,
-      status: statusUndefined ? 'undefined' : 'approved',
-      acquirer: undefined,
-      paymentAppData: undefined,
-    } as CreditCardAuthorized
-  }
+  //   return {
+  //     authorizationId: '',
+  //     code: orderResponse.status.toString(),
+  //     message: 'Successfully created Digital River order',
+  //     paymentId: content.paymentId,
+  //     tid: orderResponse.data.id,
+  //     status: statusUndefined ? 'undefined' : 'approved',
+  //     acquirer: undefined,
+  //     paymentAppData: undefined,
+  //   } as CreditCardAuthorized
+  // }
   // END Credit Card processing block
 
   logger.warn({

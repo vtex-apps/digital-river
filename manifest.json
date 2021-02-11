@@ -1,7 +1,7 @@
 {
   "name": "connector-digital-river",
   "vendor": "vtexus",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "title": "Digital River",
   "description": "Implementation of Digital River payment method, credit card processing, and tax calculation",
   "mustUpdateAt": "2018-01-04",
