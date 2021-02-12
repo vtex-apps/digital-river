@@ -131,7 +131,7 @@ export default class DigitalRiver extends ExternalClient {
         'Content-Type': `application/json`,
       },
       params: {
-        upstreamIds: [upstreamId],
+        upstreamIds: upstreamId,
       },
     })
   }

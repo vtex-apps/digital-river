@@ -60,7 +60,7 @@ interface CheckoutShipTo {
   phone: string
 }
 interface Discount {
-  amountOff: number
+  amountOff?: number
   percentOff?: number
   quantity: number
 }

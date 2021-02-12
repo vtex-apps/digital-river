@@ -105,12 +105,13 @@ export async function digitalRiverCreateCheckout(
   // for (const [index, item] of orderFormData.items.entries()) {
   for (const item of orderFormData.items) {
     let discountPrice = 0
+    let discountPercent = 0
 
     for (const priceTag of item.priceTags) {
       if (priceTag.name.toUpperCase().includes('DISCOUNT@')) {
         if (!priceTag.name.toUpperCase().includes('DISCOUNT@SHIPPING')) {
           if (priceTag.isPercentual) {
-            discountPrice += Math.abs((priceTag.value * item.price) / 100)
+            discountPercent = Math.abs(priceTag.value)
           } else {
             discountPrice += Math.abs(priceTag.value as number)
           }
@@ -124,7 +125,12 @@ export async function digitalRiverCreateCheckout(
       skuId: item.id,
       quantity: item.quantity,
       price: item.price / 100,
-      discount: discountPrice
+      discount: discountPercent
+        ? {
+            percentOff: discountPercent,
+            quantity: item.quantity,
+          }
+        : discountPrice
         ? {
             amountOff: discountPrice / 100 / item.quantity,
             quantity: item.quantity,
