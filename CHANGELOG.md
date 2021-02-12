@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.14] - 2021-02-11
+
+### Fixed
+
+- Add `ViewPayments` policy
+
+## [0.0.13] - 2021-02-11
+
+### Fixed
+
+- Fixed URL parsing method from prior version again
+
+## [0.0.12] - 2021-02-11
+
+### Fixed
+
+- Fixed URL parsing method from prior version again
+
+## [0.0.11] - 2021-02-11
+
+### Fixed
+
+- Fixed URL parsing method from prior version again
+
+## [0.0.10] - 2021-02-11
+
+### Fixed
+
+- Fixed URL parsing method from prior version
+
 ## [0.0.9] - 2021-02-11
 
 ### Fixed

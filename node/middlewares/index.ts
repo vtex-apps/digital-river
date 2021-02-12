@@ -164,26 +164,27 @@ export async function authorize(
     //   originatingAccount = MOTOROLA_ACCOUNTS[originatingAccount]
     // }
 
-    let transactionResponse = null
+    let an = null
 
     try {
-      transactionResponse = await orders.getTransaction({
+      const transactionResponse = await orders.getTransaction({
         transactionId: content.transactionId,
       })
+
+      const urlString = transactionResponse?.fields?.find((item: any) => {
+        return item.name === 'postbackStatusUrl'
+      }).value
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      an = urlString.split('an=')[1]
     } catch (err) {
       logger.error({
         error: err,
-        orderId: content.orderId,
+        transactionId: content.transactionId,
+        authToken: ctx.vtex.authToken,
         message: 'DigitalRiverAuthorize-getVTEXTransactionFailure',
       })
     }
-
-    const urlString = transactionResponse?.fields?.find((item: any) => {
-      return item.name === 'postbackStatusUrl'
-    }).value
-
-    const url = new URL(urlString)
-    const an = url.searchParams.get('an')
 
     logger.info({
       message: 'DigitalRiverAuthorize-getVTEXOrderRequest',

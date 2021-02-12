@@ -24,7 +24,7 @@ This app integrates Digital River with VTEX checkout, allowing shoppers to inter
 4. Add the following JavaScript to your `checkout6-custom.js` file, which is typically edited by accessing the **Store Setup** section in your admin sidebar and clicking `Checkout`, then clicking the blue gear icon and then the `Code` tab:
 
 ```js
-// DIGITAL RIVER Version 0.0.9
+// DIGITAL RIVER Version 0.0.14
 let checkoutUpdated = false
 const digitalRiverPaymentGroupClass = '.DigitalRiverPaymentGroup'
 const digitalRiverPaymentGroupButtonID =

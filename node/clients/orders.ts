@@ -44,6 +44,9 @@ export default class OrdersClient extends JanusClient {
     transactionId: string
   }): Promise<any> {
     return this.http.get(`/api/payments/pvt/transactions/${transactionId}`, {
+      headers: {
+        VtexIdclientAutCookie: this.context.authToken,
+      },
       metric: 'transaction-get',
     })
   }
