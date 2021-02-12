@@ -24,13 +24,25 @@ This app integrates Digital River with VTEX checkout, allowing shoppers to inter
 4. Add the following JavaScript to your `checkout6-custom.js` file, which is typically edited by accessing the **Store Setup** section in your admin sidebar and clicking `Checkout`, then clicking the blue gear icon and then the `Code` tab:
 
 ```js
-// DIGITAL RIVER
+// DIGITAL RIVER Version 0.0.9
 let checkoutUpdated = false
 const digitalRiverPaymentGroupClass = '.DigitalRiverPaymentGroup'
 const digitalRiverPaymentGroupButtonID =
   'payment-group-DigitalRiverPaymentGroup'
 
 const digitalRiverPublicKey = 'pk_test_1234567890' // NOTE! Enter your Digital River public API key here
+
+const paymentErrorTitle = 'Unable to check out with selected payment method.'
+const paymentErrorDescription =
+  'Please try a different payment method and try again.'
+const loginMessage = 'Please log in to continue payment.'
+const loginButtonText = 'LOG IN'
+const addressErrorTitle = 'Incomplete shipping address detected.'
+const addressErrorDescription =
+  'Please check your shipping information and try again.'
+const genericErrorTitle = 'Digital River checkout encountered an error.'
+const genericErrorDescription =
+  'Please check your shipping information and try again.'
 
 function getCountryCode(country) {
   return fetch(
@@ -126,18 +138,24 @@ async function initDigitalRiver() {
   )
 
   vtexjs.checkout.getOrderForm().then((orderForm) => {
+    if (!orderForm.canEditData) {
+      hideBuyNowButton()
+      $(digitalRiverPaymentGroupClass).html(
+        `<div><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${loginMessage}</h5><div><a style='cursor: pointer;' onClick='window.vtexid.start()' class='DR-button-text'>${loginButtonText}</a></div></div></div></div>`
+      )
+
+      return
+    }
+
     if (
+      !orderForm.shippingData.address ||
       !orderForm.shippingData.address.street ||
       !orderForm.shippingData.address.city ||
       !orderForm.shippingData.address.state ||
       !orderForm.shippingData.address.postalCode ||
       !orderForm.shippingData.address.country
     ) {
-      renderErrorMessage(
-        'Incomplete shipping address detected.',
-        'Please check your shipping information and try again.',
-        false
-      )
+      renderErrorMessage(addressErrorTitle, addressErrorDescription, false)
 
       return
     }
@@ -156,11 +174,7 @@ async function initDigitalRiver() {
         const { checkoutId = null, paymentSessionId = null } = response
 
         if (!checkoutId || !paymentSessionId) {
-          renderErrorMessage(
-            'Digital River checkout encountered an error.',
-            'Please check your shipping information and try again.',
-            false
-          )
+          renderErrorMessage(genericErrorTitle, genericErrorDescription, false)
 
           return
         }
@@ -229,11 +243,7 @@ async function initDigitalRiver() {
           onCancel(data) {},
           onError(data) {
             console.error(data)
-            renderErrorMessage(
-              'Unable to check out with selected payment method.',
-              'Please try a different payment method and try again.',
-              true
-            )
+            renderErrorMessage(paymentErrorTitle, paymentErrorDescription, true)
           },
           onReady(data) {},
         }

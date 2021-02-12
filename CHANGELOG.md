@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.9] - 2021-02-11
+
+### Fixed
+
+- Improved method to get marketplace account name in a marketplace-seller authorization request
+
 ## [0.0.8] - 2021-02-11
 
 ### Changed

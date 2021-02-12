@@ -1,7 +1,8 @@
 {
   "extends": "@vtex/tsconfig",
   "compilerOptions": {
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": ["DOM"]
   },
   "include": ["./typings/*.d.ts", "./**/*.tsx", "./**/*.ts"]
 }

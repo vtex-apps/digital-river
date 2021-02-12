@@ -37,4 +37,14 @@ export default class OrdersClient extends JanusClient {
       metric: 'order-get',
     })
   }
+
+  public async getTransaction({
+    transactionId,
+  }: {
+    transactionId: string
+  }): Promise<any> {
+    return this.http.get(`/api/payments/pvt/transactions/${transactionId}`, {
+      metric: 'transaction-get',
+    })
+  }
 }

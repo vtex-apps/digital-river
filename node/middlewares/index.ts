@@ -29,7 +29,7 @@ import type {
 // import { isTokenizedCard } from '@vtex/payment-provider-sdk'
 import { ResolverError } from '@vtex/api'
 
-import { MOTOROLA_ACCOUNTS } from '../constants'
+// import { MOTOROLA_ACCOUNTS } from '../constants'
 
 // import { applicationId, COUNTRIES_LANGUAGES } from '../constants'
 
@@ -158,24 +158,47 @@ export async function authorize(
   if (content.paymentMethod === 'DigitalRiver') {
     let digitalRiverCheckoutId = ''
     let orderData = null
-    let [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
+    // let [originatingAccount] = content.url?.split('/')[2].split('.') ?? ['']
 
-    if (originatingAccount in MOTOROLA_ACCOUNTS) {
-      originatingAccount = MOTOROLA_ACCOUNTS[originatingAccount]
+    // if (originatingAccount in MOTOROLA_ACCOUNTS) {
+    //   originatingAccount = MOTOROLA_ACCOUNTS[originatingAccount]
+    // }
+
+    let transactionResponse = null
+
+    try {
+      transactionResponse = await orders.getTransaction({
+        transactionId: content.transactionId,
+      })
+    } catch (err) {
+      logger.error({
+        error: err,
+        orderId: content.orderId,
+        message: 'DigitalRiverAuthorize-getVTEXTransactionFailure',
+      })
     }
+
+    const urlString = transactionResponse?.fields?.find((item: any) => {
+      return item.name === 'postbackStatusUrl'
+    }).value
+
+    const url = new URL(urlString)
+    const an = url.searchParams.get('an')
 
     logger.info({
       message: 'DigitalRiverAuthorize-getVTEXOrderRequest',
       payload: {
         orderId: `${content.orderId}-01`,
-        originatingAccount,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        originatingAccount: an || '',
       },
     })
 
     try {
       orderData = await orders.getOrder({
         orderId: `${content.orderId}-01`,
-        originatingAccount,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        originatingAccount: an || '',
         vtexAppKey: settings.vtexAppKey,
         vtexAppToken: settings.vtexAppToken,
       })
