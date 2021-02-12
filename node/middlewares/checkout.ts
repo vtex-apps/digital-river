@@ -110,7 +110,7 @@ export async function digitalRiverCreateCheckout(
       if (priceTag.name.toUpperCase().includes('DISCOUNT@')) {
         if (!priceTag.name.toUpperCase().includes('DISCOUNT@SHIPPING')) {
           if (priceTag.isPercentual) {
-            discountPrice += Math.abs(priceTag.value * item.price)
+            discountPrice += Math.abs((priceTag.value * item.price) / 100)
           } else {
             discountPrice += Math.abs(priceTag.value as number)
           }
