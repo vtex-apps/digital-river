@@ -24,6 +24,7 @@ export async function digitalRiverCreateCheckout(
   const {
     clients: { apps, digitalRiver, orderForm },
     req,
+    req: { headers },
     vtex: { logger },
   } = ctx
 
@@ -35,6 +36,8 @@ export async function digitalRiverCreateCheckout(
   }
 
   const createCheckoutRequest = (await json(req)) as CreateCheckoutRequest
+
+  const [browserIp] = (headers['x-forwarded-for'] as string)?.split(',')
 
   if (!createCheckoutRequest?.orderFormId) {
     throw new UserInputError('No orderForm ID provided')
@@ -63,15 +66,6 @@ export async function digitalRiverCreateCheckout(
   const shippingCountry = orderFormData?.shippingData?.address?.country
     ? convertIso3To2(orderFormData?.shippingData?.address?.country)
     : ''
-
-  // let locale = 'en_US'
-
-  // if (
-  //   orderFormData?.shippingData?.address?.country &&
-  //   orderFormData?.shippingData?.address?.country in COUNTRIES_LANGUAGES
-  // ) {
-  //   locale = COUNTRIES_LANGUAGES[shippingCountry]
-  // }
 
   const { locale = 'en_US' } = orderFormData?.clientPreferencesData
 
@@ -163,6 +157,7 @@ export async function digitalRiverCreateCheckout(
     taxInclusive: true,
     email: orderFormData.clientProfileData?.email ?? '',
     locale: locale.replace('-', '_'),
+    browserIp,
     shipFrom: {
       address: {
         line1: orderFormData.shippingData?.address?.street || 'Unknown',

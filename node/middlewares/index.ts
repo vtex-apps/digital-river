@@ -838,13 +838,11 @@ export async function cancel(
   const {
     request: {
       body,
-      body: { authorizationId, transactionId, paymentId, requestId },
+      body: { authorizationId, paymentId, requestId },
     },
     clients: { digitalRiver, apps },
     vtex: { logger },
   } = ctx
-
-  const { tid } = ctx.request.body as any
 
   const app: string = getAppId()
   const settings = await apps.getAppSettings(app)
@@ -854,25 +852,34 @@ export async function cancel(
     data: body,
   })
 
+  if (!authorizationId) {
+    return {
+      cancellationId: paymentId,
+      code: undefined,
+      message: `No Digital River Order ID found, nothing to cancel`,
+      paymentId,
+      requestId,
+    } as CancellationResponse
+  }
+
   let getOrderResponse = null
 
   logger.info({
     message: 'DigitalRiverCancel-getDigitalRiverOrderRequest',
     paymentId,
     payload: {
-      orderId: tid || authorizationId,
+      orderId: authorizationId,
     },
   })
 
   try {
     getOrderResponse = await digitalRiver.getOrderById({
       settings,
-      orderId: tid || authorizationId,
+      orderId: authorizationId,
     })
 
     logger.info({
       message: 'DigitalRiverCancel-getDigitalRiverOrderResponse',
-      tid,
       authorizationId,
       paymentId,
       data: getOrderResponse,
@@ -880,16 +887,13 @@ export async function cancel(
   } catch (err) {
     logger.error({
       error: err,
-      tid,
       authorizationId,
       paymentId,
       message: 'DigitalRiverCancel-getOrderByIdFailure',
     })
 
     throw new ResolverError({
-      message: `Get order by ID error using Digital River Order ID ${
-        tid || authorizationId
-      }`,
+      message: `Get order by ID error using Digital River Order ID ${authorizationId}`,
       error: err,
     })
   }
@@ -941,8 +945,7 @@ export async function cancel(
   return {
     cancellationId: cancelResponse.id,
     code: undefined,
-    message: `Successfully cancelled Digital River Order ID `,
-    transactionId,
+    message: `Successfully cancelled Digital River Order ID ${getOrderResponse.id}`,
     paymentId,
     requestId,
   } as CancellationResponse

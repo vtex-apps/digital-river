@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.18] - 2021-02-14
+
+### Fixed
+
+- Send browser IP to Digital River when creating checkout
+- Return early cancellation response if no Digital River Order ID is provided
+
 ## [0.0.17] - 2021-02-11
 
 ### Fixed
