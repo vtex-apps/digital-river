@@ -44,8 +44,8 @@ const genericErrorTitle = 'Digital River checkout encountered an error.'
 const genericErrorDescription =
   'Please check your shipping information and try again.'
 
-function getCountryCode(country) {
-  return fetch(
+async function getCountryCode(country) {
+  return await fetch(
     `${
       __RUNTIME__.rootPath || ``
     }/_v/api/digital-river/checkout/country-code/${country}`
@@ -61,7 +61,7 @@ function getCountryCode(country) {
 function renderErrorMessage(title, body, append = false) {
   if (!append) {
     $(digitalRiverPaymentGroupClass).html(
-      `<div id='drop-in'><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${title}</h5><div><p>${body}</p></div></div></div></div>`
+      `<div><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${title}</h5><div><p>${body}</p></div></div></div></div>`
     )
 
     return
@@ -126,27 +126,142 @@ function loadDigitalRiver() {
   u.parentNode.insertBefore(f, u)
 }
 
-async function initDigitalRiver() {
-  if ($('#drop-in').length) {
-    if (!checkoutUpdated) hideBuyNowButton()
+async function initDigitalRiver(orderForm) {
+  hideBuyNowButton()
 
+  if (
+    $('#drop-in-spinner').length ||
+    ($('#drop-in').length && $('#drop-in').html().length)
+  ) {
     return
   }
 
   $(digitalRiverPaymentGroupClass).html(
-    `<div id='drop-in'><i class="icon-spinner icon-spin"></i></div>`
+    `<div id='drop-in-spinner'><i class="icon-spinner icon-spin"></i></div>`
   )
 
-  vtexjs.checkout.getOrderForm().then((orderForm) => {
-    if (!orderForm.canEditData) {
-      hideBuyNowButton()
-      $(digitalRiverPaymentGroupClass).html(
-        `<div><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${loginMessage}</h5><div><a style='cursor: pointer;' onClick='window.vtexid.start()' class='DR-button-text'>${loginButtonText}</a></div></div></div></div>`
+  $(digitalRiverPaymentGroupClass).append(`<div id='drop-in'></div>`)
+
+  if (!orderForm.canEditData) {
+    hideBuyNowButton()
+    $(digitalRiverPaymentGroupClass).html(
+      `<div><div class='DR-card'><div class='DR-collapse DR-show'><h5 class='DR-error-message'>${loginMessage}</h5><div><a style='cursor: pointer;' onClick='window.vtexid.start()' class='DR-button-text'>${loginButtonText}</a></div></div></div></div>`
+    )
+
+    return
+  }
+
+  fetch(`${__RUNTIME__.rootPath || ``}/_v/api/digital-river/checkout/create`, {
+    method: 'POST',
+    body: JSON.stringify({ orderFormId: orderForm.orderFormId }),
+  })
+    .then((response) => {
+      return response.json()
+    })
+    .then(async (response) => {
+      const { checkoutId = null, paymentSessionId = null } = response
+
+      if (!checkoutId || !paymentSessionId) {
+        renderErrorMessage(genericErrorTitle, genericErrorDescription, false)
+
+        return
+      }
+
+      await updateOrderForm('PUT', checkoutId)
+
+      const digitalriver = new DigitalRiver(digitalRiverPublicKey, {
+        locale: orderForm.clientPreferencesData.locale
+          ? orderForm.clientPreferencesData.locale.toLowerCase()
+          : 'en-us',
+      })
+
+      const country = await getCountryCode(
+        orderForm.shippingData.address.country
       )
 
-      return
-    }
+      const configuration = {
+        sessionId: paymentSessionId,
+        options: {
+          flow: 'checkout',
+          showSavePaymentAgreement: false,
+          button: {
+            type: 'buyNow',
+          },
+          showComplianceSection: true,
+          showTermsOfSaleDisclosure: false,
+        },
+        billingAddress: {
+          firstName: orderForm.clientProfileData.firstName,
+          lastName: orderForm.clientProfileData.lastName,
+          email: orderForm.clientProfileData.email,
+          phoneNumber: orderForm.clientProfileData.phone,
+          address: {
+            line1: `${
+              orderForm.shippingData.address.number
+                ? `${orderForm.shippingData.address.number} `
+                : ''
+            }${orderForm.shippingData.address.street}`,
+            line2: orderForm.shippingData.address.complement,
+            city: orderForm.shippingData.address.city,
+            state: orderForm.shippingData.address.state,
+            postalCode: orderForm.shippingData.address.postalCode,
+            country,
+          },
+        },
+        onSuccess(data) {
+          fetch(
+            `${
+              __RUNTIME__.rootPath || ``
+            }/_v/api/digital-river/checkout/update`,
+            {
+              method: 'POST',
+              body: JSON.stringify({ checkoutId, sourceId: data.source.id }),
+            }
+          )
+            .then((rawResponse) => {
+              return rawResponse.json()
+            })
+            .then(() => {
+              checkoutUpdated = true
+              clickBuyNowButton()
+            })
+        },
+        onCancel(data) {},
+        onError(data) {
+          console.error(data)
+          renderErrorMessage(paymentErrorTitle, paymentErrorDescription, true)
+        },
+        onReady(data) {},
+      }
 
+      const dropin = digitalriver.createDropin(configuration)
+      $('#drop-in-spinner').remove()
+      dropin.mount('drop-in')
+    })
+}
+
+$(document).ready(function () {
+  loadDigitalRiver()
+  if (~window.location.hash.indexOf('#/payment')) {
+    if (
+      $('.payment-group-item.active').attr('id') ===
+      digitalRiverPaymentGroupButtonID
+    ) {
+      vtexjs.checkout.getOrderForm().done(function (orderForm) {
+        initDigitalRiver(orderForm)
+      })
+    } else {
+      showBuyNowButton()
+    }
+  }
+})
+
+$(window).on('orderFormUpdated.vtex', function (evt, orderForm) {
+  if (
+    ~window.location.hash.indexOf('#/payment') &&
+    $('.payment-group-item.active').attr('id') ===
+      digitalRiverPaymentGroupButtonID
+  ) {
     if (
       !orderForm.shippingData.address ||
       !orderForm.shippingData.address.street ||
@@ -155,132 +270,16 @@ async function initDigitalRiver() {
       !orderForm.shippingData.address.postalCode ||
       !orderForm.shippingData.address.country
     ) {
-      renderErrorMessage(addressErrorTitle, addressErrorDescription, false)
-
       return
+    } else {
+      initDigitalRiver(orderForm)
     }
-
-    fetch(
-      `${__RUNTIME__.rootPath || ``}/_v/api/digital-river/checkout/create`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ orderFormId: orderForm.orderFormId }),
-      }
-    )
-      .then((response) => {
-        return response.json()
-      })
-      .then(async (response) => {
-        const { checkoutId = null, paymentSessionId = null } = response
-
-        if (!checkoutId || !paymentSessionId) {
-          renderErrorMessage(genericErrorTitle, genericErrorDescription, false)
-
-          return
-        }
-
-        await updateOrderForm('PUT', checkoutId)
-
-        $(digitalRiverPaymentGroupClass).html(`<div id='drop-in'></div>`)
-
-        const digitalriver = new DigitalRiver(digitalRiverPublicKey, {
-          locale: orderForm.clientPreferencesData.locale
-            ? orderForm.clientPreferencesData.locale.toLowerCase()
-            : 'en-us',
-        })
-
-        const country = await getCountryCode(
-          orderForm.shippingData.address.country
-        )
-
-        const configuration = {
-          sessionId: paymentSessionId,
-          options: {
-            flow: 'checkout',
-            showSavePaymentAgreement: false,
-            button: {
-              type: 'buyNow',
-            },
-            showComplianceSection: true,
-            showTermsOfSaleDisclosure: false,
-          },
-          billingAddress: {
-            firstName: orderForm.clientProfileData.firstName,
-            lastName: orderForm.clientProfileData.lastName,
-            email: orderForm.clientProfileData.email,
-            phoneNumber: orderForm.clientProfileData.phone,
-            address: {
-              line1: `${
-                orderForm.shippingData.address.number
-                  ? `${orderForm.shippingData.address.number} `
-                  : ''
-              }${orderForm.shippingData.address.street}`,
-              line2: orderForm.shippingData.address.complement,
-              city: orderForm.shippingData.address.city,
-              state: orderForm.shippingData.address.state,
-              postalCode: orderForm.shippingData.address.postalCode,
-              country,
-            },
-          },
-          onSuccess(data) {
-            fetch(
-              `${
-                __RUNTIME__.rootPath || ``
-              }/_v/api/digital-river/checkout/update`,
-              {
-                method: 'POST',
-                body: JSON.stringify({ checkoutId, sourceId: data.source.id }),
-              }
-            )
-              .then((rawResponse) => {
-                return rawResponse.json()
-              })
-              .then(() => {
-                checkoutUpdated = true
-                clickBuyNowButton()
-              })
-          },
-          onCancel(data) {},
-          onError(data) {
-            console.error(data)
-            renderErrorMessage(paymentErrorTitle, paymentErrorDescription, true)
-          },
-          onReady(data) {},
-        }
-
-        const dropin = digitalriver.createDropin(configuration)
-
-        dropin.mount('drop-in')
-      })
-  })
-}
-
-$(document).ready(function () {
-  loadDigitalRiver()
-})
-
-$(window).on('checkoutRequestBegin.vtex', (evt, ajaxOptions) => {
-  if (
-    $('.payment-group-item.active').attr('id') ===
-    digitalRiverPaymentGroupButtonID
-  ) {
-    initDigitalRiver()
-  } else {
-    showBuyNowButton()
   }
 })
 
 $(window).on('hashchange', function (ev) {
   if (ev.originalEvent.newURL.includes('profile', 0)) {
     document.getElementById('opt-in-newsletter').checked = false
-  }
-
-  if (
-    ~window.location.hash.indexOf('#/payment') &&
-    $('.payment-group-item.active').attr('id') ===
-      digitalRiverPaymentGroupButtonID
-  ) {
-    initDigitalRiver()
   }
 })
 ```
