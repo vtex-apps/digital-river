@@ -102,6 +102,7 @@ interface DRCheckoutResponse {
   shippingChoice: ShippingChoice
   upstreamId: string
   browserIp?: string
+  sources?: Source[]
   locale: string
   applicationId: string
   customerType: string
@@ -158,7 +159,7 @@ interface DROrderResponse {
   stateTransitions: StateTransitions
   fraudState: string
   fraudStateTransitions: FraudStateTransitions
-  sourceId: string
+  sources: Source[]
   charges: Charge[]
   liveMode: boolean
   updatedTime: string
@@ -341,6 +342,18 @@ interface SellingEntity {
 }
 interface ShippingChoice {
   taxAmount: number
+}
+interface Source {
+  amount: number
+  clientSecret: string
+  createdTime: string
+  creditCard?: DRCreditCardResponse
+  currency: string
+  id: string
+  paymentSessionId: string
+  reusable: boolean
+  state: string
+  type: string
 }
 interface StateTransitions {
   submitted: string | null

@@ -25,6 +25,11 @@ export default class LogisticsClient extends JanusClient {
       metric: 'logisticsClient-getSkuById',
     })
 
+  public getSkuOffers = (productId: string, skuId: string) =>
+    this.http.get(this.routes.offers(productId, skuId), {
+      metric: 'logisticsClient-getSkuOffers',
+    })
+
   private get routes() {
     return {
       root: () => '/api',
@@ -32,6 +37,8 @@ export default class LogisticsClient extends JanusClient {
         `${this.routes.root()}/logistics/pvt/configuration/docks/${dockId}`,
       sku: (skuId: string) =>
         `${this.routes.root()}/catalog_system/pvt/sku/stockkeepingunitbyid/${skuId}`,
+      offers: (productId: string, skuId: string) =>
+        `${this.routes.root()}/offer-manager/pvt/product/${productId}/sku/${skuId}`,
     }
   }
 }

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.20] - 2021-02-17
+
+### Changed
+
+- When creating a Digital River checkout that includes products from a seller account, app now sends the seller SKU for each item instead of the marketplace SKU
+- Update docs to explain new gateway affiliation Auto Settlement option
+
+## [0.0.19] - 2021-02-15
+
+### Changed
+
+- Add `delayToAutoSettle` value of 7 days in authorization response
+- Add shopper's credit card information to transaction log in authorization response
+
 ## [0.0.18] - 2021-02-14
 
 ### Fixed

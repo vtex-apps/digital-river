@@ -335,7 +335,11 @@ export async function authorize(
       return {
         paymentId: content.paymentId,
         tid: '',
-        message: `Order creation error for Checkout ID ${digitalRiverCheckoutId}: ${err}`,
+        message: `Order creation error for Checkout ID ${digitalRiverCheckoutId}: ${err}.${
+          updateCheckoutResponse.sources?.length &&
+          updateCheckoutResponse.sources[0].type === 'creditCard' &&
+          `Card details: ${updateCheckoutResponse.sources[0].creditCard?.brand} Exp. ${updateCheckoutResponse.sources[0].creditCard?.expirationMonth}/${updateCheckoutResponse.sources[0].creditCard?.expirationYear} ending in ${updateCheckoutResponse.sources[0].creditCard?.lastFourDigits}`
+        }`,
         status: 'denied',
       } as FailedAuthorization
     }
@@ -354,13 +358,20 @@ export async function authorize(
     return {
       authorizationId: orderResponse.data.id,
       code: orderResponse.status.toString(),
-      message: `Successfully created Digital River order using Checkout ID ${digitalRiverCheckoutId}. See TID field for Digital River Order ID. Digital River order state is ${orderResponse.data.state}.`,
+      message: `Successfully created Digital River order using Checkout ID ${digitalRiverCheckoutId}. Digital River Order ID is ${
+        orderResponse.data.id
+      }. Digital River order state is ${orderResponse.data.state}.${
+        orderResponse.data.sources.length &&
+        orderResponse.data.sources[0].type === 'creditCard' &&
+        `Card details: ${orderResponse.data.sources[0].creditCard?.brand} Exp. ${orderResponse.data.sources[0].creditCard?.expirationMonth}/${orderResponse.data.sources[0].creditCard?.expirationYear} ending in ${orderResponse.data.sources[0].creditCard?.lastFourDigits}`
+      }`,
       paymentId: content.paymentId,
       tid: orderResponse.data.id,
       status: statusUndefined ? 'undefined' : 'approved',
       acquirer: undefined,
       paymentAppData: undefined,
       delayToCancel: 60 * 60 * 24 * 7, // 7 days
+      delayToAutoSettle: 60 * 60 * 24 * 7, // 7 days
     } as ApprovedAuthorization | UndefinedAuthorization
   }
 

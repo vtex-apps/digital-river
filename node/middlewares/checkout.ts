@@ -22,7 +22,7 @@ export async function digitalRiverCreateCheckout(
   next: () => Promise<unknown>
 ) {
   const {
-    clients: { apps, digitalRiver, orderForm },
+    clients: { apps, digitalRiver, logistics, orderForm },
     req,
     req: { headers },
     vtex: { logger },
@@ -100,6 +100,29 @@ export async function digitalRiverCreateCheckout(
   for (const item of orderFormData.items) {
     let discountPrice = 0
     let discountPercent = 0
+    let sku = item.id
+
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const offersResponse = await logistics.getSkuOffers(
+        item.productId,
+        item.id
+      )
+
+      if (offersResponse.length && offersResponse[0].sellersOffers?.length) {
+        sku =
+          offersResponse[0].sellersOffers.find((offer: any) => {
+            return offer.sellerId === item.seller
+          })?.sellerSkuId || sku
+      }
+    } catch (err) {
+      logger.error({
+        message: 'DigitalRiverCreateCheckout-getSkuOffersFailure',
+        productId: item.productId,
+        skuId: item.id,
+        error: err,
+      })
+    }
 
     for (const priceTag of item.priceTags) {
       if (priceTag.name.toUpperCase().includes('DISCOUNT@')) {
@@ -116,7 +139,7 @@ export async function digitalRiverCreateCheckout(
     // const dock = docks[index]
 
     const newItem: CheckoutItem = {
-      skuId: item.id,
+      skuId: sku,
       quantity: item.quantity,
       price: item.price / 100,
       discount: discountPercent

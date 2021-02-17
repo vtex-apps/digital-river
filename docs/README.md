@@ -276,18 +276,12 @@ $(window).on('orderFormUpdated.vtex', function (evt, orderForm) {
     }
   }
 })
-
-$(window).on('hashchange', function (ev) {
-  if (ev.originalEvent.newURL.includes('profile', 0)) {
-    document.getElementById('opt-in-newsletter').checked = false
-  }
-})
 ```
 
 5. In your admin sidebar, access the **Transactions** section and click `Payments > Settings`.
 6. Click the `Gateway Affiliations` tab and click the green plus sign to add a new affiliation.
 7. Click `DigitalRiverV2` from the **Others** list.
-8. Modify the `Affiliation name` if desired and then click `Save`. Leave `Application Key` and `Application Token` blank.
+8. Modify the `Affiliation name` if desired, choose an `Auto Settlement` behavior from the dropdown (Digital River recommends setting this to "Disabled: Do Not Auto Settle") and then click `Save`. Leave `Application Key` and `Application Token` blank.
 9. Click the `Payment Conditions` tab and click the green plus sign to add a new payment condition.
 10. Click `DigitalRiver` from the **Other** list.
 11. In the `Process with affiliation` dropdown, choose the name of the affiliation that you created in step 8. Set the status to `Active` and click `Save`. Note that this will activate the payment method in checkout!
