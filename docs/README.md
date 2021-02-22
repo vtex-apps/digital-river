@@ -21,6 +21,9 @@ This app integrates Digital River with VTEX checkout, allowing shoppers to inter
 1. Install this app in the desired account using the CLI command `vtex install vtexus.connector-digital-river`. If you have multiple accounts configured in a marketplace-seller relationship, install the app and repeat the following steps in each of the related accounts.
 2. In your admin sidebar, access the **Other** section and click on `Digital River`.
 3. In the settings fields, enter your `Digital River token`, `VTEX App Key` and `VTEX App Token`. For initial testing, use a test `Digital River token` and leave the `Enable production mode` toggle turned off.
+
+⚠️ _For multiple accounts configured in a marketplace-seller relationship, the same `VTEX App Key` and `VTEX App Token` should be used for all of the accounts in which the app is installed. You can use any of the accounts to generate the key/token, and then grant additional permissions to the key/token by [creating a new user](https://help.vtex.com/en/tutorial/managing-users--tutorials_512) on each of the other accounts using the `VTEX App Key` in place of the user's email address, and then assigning the Owner role to that user._
+
 4. Add the following JavaScript to your `checkout6-custom.js` file, which is typically edited by accessing the **Store Setup** section in your admin sidebar and clicking `Checkout`, then clicking the blue gear icon and then the `Code` tab:
 
 ```js
