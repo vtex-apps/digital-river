@@ -360,10 +360,15 @@ export async function authorize(
       code: orderResponse.status.toString(),
       message: `Successfully created Digital River order using Checkout ID ${digitalRiverCheckoutId}. Digital River Order ID is ${
         orderResponse.data.id
-      }. Digital River order state is ${orderResponse.data.state}.${
+      }. Digital River order state is ${orderResponse.data.state}. ${
+        orderResponse.data.sources.length
+          ? `Payment method is ${orderResponse.data.sources[0].type}. `
+          : ``
+      } ${
         orderResponse.data.sources.length &&
-        orderResponse.data.sources[0].type === 'creditCard' &&
-        `Card details: ${orderResponse.data.sources[0].creditCard?.brand} Exp. ${orderResponse.data.sources[0].creditCard?.expirationMonth}/${orderResponse.data.sources[0].creditCard?.expirationYear} ending in ${orderResponse.data.sources[0].creditCard?.lastFourDigits}`
+        orderResponse.data.sources[0].type === 'creditCard'
+          ? `Card details: ${orderResponse.data.sources[0].creditCard?.brand} Exp. ${orderResponse.data.sources[0].creditCard?.expirationMonth}/${orderResponse.data.sources[0].creditCard?.expirationYear} ending in ${orderResponse.data.sources[0].creditCard?.lastFourDigits}`
+          : ``
       }`,
       paymentId: content.paymentId,
       tid: orderResponse.data.id,

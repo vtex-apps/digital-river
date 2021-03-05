@@ -153,6 +153,9 @@ export async function digitalRiverCreateCheckout(
             quantity: item.quantity,
           }
         : undefined,
+      metadata: {
+        vtexItemId: item.uniqueId,
+      },
       // ...(!!dock && {
       //   shipFrom: {
       //     address: {
