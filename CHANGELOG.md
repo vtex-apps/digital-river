@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.21] - 2021-03-05
+
 ### Added
 
 - Include VTEX cart item `uniqueId` when creating Digital River checkout
