@@ -45,6 +45,7 @@ interface CheckoutItem {
 interface CheckoutMetadata {
   paymentId?: string
   taxHubRequestId?: string
+  vtexItemId?: string
 }
 interface CheckoutShipFrom {
   address: CheckoutAddress
