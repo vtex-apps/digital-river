@@ -136,7 +136,7 @@ export async function authorize(
       })
 
       return {
-        authorizationId: '',
+        authorizationId: order.id,
         code: undefined,
         message: `Existing Digital River order located using Upstream ID ${content.reference}, state is '${order.state}'`,
         paymentId: content.paymentId,
