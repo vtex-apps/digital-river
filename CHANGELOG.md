@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.0.22] - 2021-04-19
+
 ### Fixed
 
 - Changed the value of `authorizationId` to prevent overwriting when authorization is retried
